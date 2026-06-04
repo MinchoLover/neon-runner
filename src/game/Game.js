@@ -31,6 +31,12 @@ export class Game {
       boostCooldown: 0,
       hyperActive: false,
       hyperTime: 0,
+      maxCombo: 0,
+      nearMisses: 0,
+      hyperCount: 0,
+      riftTurns: 0,
+      boostsUsed: 0,
+      missions: [],
     };
     this.elapsed = 0;
     this.boostTimer = 0;
@@ -47,6 +53,9 @@ export class Game {
     this.shake = 0;
     this.turnPulseTimer = 0;
     this.activePalette = TUNNEL_PALETTES[0];
+    this.tutorialCues = new Set();
+    this.completedMissionIds = new Set();
+    this.stats.missions = this._createMissions();
 
     this._setupScene();
     this._setupWorld();
@@ -162,6 +171,7 @@ export class Game {
     if (this.boostCooldown > 0) return;
     this.boostTimer = GAME.boostDuration;
     this.boostCooldown = GAME.boostCooldown;
+    this.stats.boostsUsed += 1;
     this.shake = Math.max(this.shake, 0.12);
     this.audio.play('boost');
   }
@@ -201,6 +211,14 @@ export class Game {
     this.stats.boostCooldown = 0;
     this.stats.hyperActive = false;
     this.stats.hyperTime = 0;
+    this.stats.maxCombo = 0;
+    this.stats.nearMisses = 0;
+    this.stats.hyperCount = 0;
+    this.stats.riftTurns = 0;
+    this.stats.boostsUsed = 0;
+    this.stats.missions = this._createMissions();
+    this.tutorialCues.clear();
+    this.completedMissionIds.clear();
     this.player.reset();
     this.obstacles.reset();
     this.particles.reset();
@@ -285,8 +303,10 @@ export class Game {
     this.stats.score += delta * (85 + this.stats.speed * 7 + this.stats.combo * 18) * multiplier;
     this.stats.boostReady = this.boostCooldown <= 0;
     this.stats.boostCooldown = this.boostCooldown;
+    this.stats.maxCombo = Math.max(this.stats.maxCombo, this.stats.combo);
 
     this._syncPalette(delta);
+    this._updateRunCues();
     this.tunnel.update(delta, this.stats.speed, this.stats.hyperActive ? 1 : 0);
     this.player.update(delta, boostFactor, this.invincibleTime, this.hitFlashTime);
     if (boostFactor || this.stats.hyperActive) this.particles.boostTrail(this.player.group.position, this.stats.hyperActive);
@@ -301,6 +321,7 @@ export class Game {
       onTurnGate: (direction, position) => this._handleTurnGate(direction, position),
     });
 
+    this._syncMissions();
     this.ui.update(this.stats);
   }
 
@@ -327,6 +348,7 @@ export class Game {
 
   _handlePassed() {
     this.stats.combo += 1;
+    this.stats.maxCombo = Math.max(this.stats.maxCombo, this.stats.combo);
     const multiplier = this.stats.hyperActive ? 2 : 1;
     this.stats.score += (125 + this.stats.combo * 35) * multiplier;
     this.particles.sparkle(this.player.group.position, this.stats.hyperActive ? 18 : 9);
@@ -337,7 +359,9 @@ export class Game {
 
   _handleNearMiss(position) {
     this.nearMissChain += 1;
+    this.stats.nearMisses += 1;
     this.stats.combo += 2;
+    this.stats.maxCombo = Math.max(this.stats.maxCombo, this.stats.combo);
     const multiplier = this.stats.hyperActive ? 2 : 1;
     this.stats.score += (150 + this.stats.combo * 10) * multiplier;
     this.ui.showNearMiss();
@@ -352,6 +376,7 @@ export class Game {
     if (this.stats.combo >= GAME.hyperCombo || this.nearMissChain >= 4 || this.stats.distance > 650) {
       this.hyperTimer = GAME.hyperDuration;
       this.stats.hyperActive = true;
+      this.stats.hyperCount += 1;
       this.startPulseTimer = 0.4;
       this.shake = Math.max(this.shake, 0.22);
       this.audio.play('hyperStart');
@@ -367,6 +392,8 @@ export class Game {
     this.startPulseTimer = 0.42;
     this.shake = Math.max(this.shake, 0.08);
     this.stats.combo += 2;
+    this.stats.maxCombo = Math.max(this.stats.maxCombo, this.stats.combo);
+    this.stats.riftTurns += 1;
     this.stats.score += 260 * (this.stats.hyperActive ? 2 : 1);
     this.ui.showTurnResult('PERFECT TURN');
     window.setTimeout(() => {
@@ -435,6 +462,94 @@ export class Game {
       this.audio.play('shieldBreak');
       this.audio.play('gameover');
       this.state = 'crashing';
+    }
+  }
+
+  _createMissions() {
+    const pool = [
+      {
+        id: 'distance-650',
+        label: 'Reach 650M',
+        target: 650,
+        read: () => Math.floor(this.stats.distance),
+      },
+      {
+        id: 'score-9000',
+        label: 'Score 9,000',
+        target: 9000,
+        read: () => Math.floor(this.stats.score),
+      },
+      {
+        id: 'combo-14',
+        label: 'Hit X 14 Combo',
+        target: 14,
+        read: () => this.stats.maxCombo,
+      },
+      {
+        id: 'near-5',
+        label: 'Near Miss 5',
+        target: 5,
+        read: () => this.stats.nearMisses,
+      },
+      {
+        id: 'hyper-1',
+        label: 'Enter Hyper',
+        target: 1,
+        read: () => this.stats.hyperCount,
+      },
+      {
+        id: 'rift-2',
+        label: 'Perfect Turn 2',
+        target: 2,
+        read: () => this.stats.riftTurns,
+      },
+      {
+        id: 'boost-4',
+        label: 'Boost 4 Times',
+        target: 4,
+        read: () => this.stats.boostsUsed,
+      },
+    ];
+
+    return pool
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((mission) => ({
+        id: mission.id,
+        label: mission.label,
+        target: mission.target,
+        value: 0,
+        complete: false,
+        read: mission.read,
+      }));
+  }
+
+  _syncMissions() {
+    for (const mission of this.stats.missions) {
+      mission.value = Math.min(mission.read(), mission.target);
+      const wasComplete = mission.complete;
+      mission.complete = mission.value >= mission.target;
+      if (!wasComplete && mission.complete && !this.completedMissionIds.has(mission.id)) {
+        this.completedMissionIds.add(mission.id);
+        this.stats.score += 550;
+        this.ui.showMissionComplete(mission.label);
+        this.audio.play('zoneEnter');
+      }
+    }
+  }
+
+  _updateRunCues() {
+    const cues = [
+      { id: 'combo', at: 1.2, label: 'CHAIN DODGES', prefix: 'TIP' },
+      { id: 'near', at: 5.5, label: 'NEAR MISS BUILDS HYPER', prefix: 'TIP' },
+      { id: 'turn', at: 10.5, label: 'RIFT TURNS CHANGE THE ZONE', prefix: 'TIP' },
+    ];
+
+    for (const cue of cues) {
+      if (this.elapsed >= cue.at && !this.tutorialCues.has(cue.id)) {
+        this.tutorialCues.add(cue.id);
+        this.ui.showZone(cue.label, cue.prefix);
+      }
     }
   }
 

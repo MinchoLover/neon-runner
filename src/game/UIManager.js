@@ -40,11 +40,16 @@ export class UIManager {
           <label>BOOST</label>
           <output data-ui="boost">READY</output>
         </div>
+        <div class="hud-block mission-block">
+          <label>MISSIONS</label>
+          <div class="mission-list" data-ui="missions"></div>
+        </div>
       </div>
       <div class="hyper-banner" data-ui="hyper">HYPER MODE</div>
       <div class="zone-label" data-ui="zoneLabel">ZONE: CYBER PINK</div>
       <div class="turn-prompt" data-ui="turnPrompt">RIFT TURN</div>
       <div class="near-miss" data-ui="nearMiss">NEAR MISS</div>
+      <div class="mission-toast" data-ui="missionToast">MISSION COMPLETE</div>
       <div class="control-hint">
         <span><kbd>A</kbd><b>LEFT</b></span>
         <span><kbd>D</kbd><b>RIGHT</b></span>
@@ -72,6 +77,8 @@ export class UIManager {
     this.zoneLabel = root.querySelector('[data-ui="zoneLabel"]');
     this.turnPrompt = root.querySelector('[data-ui="turnPrompt"]');
     this.nearMiss = root.querySelector('[data-ui="nearMiss"]');
+    this.missions = root.querySelector('[data-ui="missions"]');
+    this.missionToast = root.querySelector('[data-ui="missionToast"]');
     this.shieldFlashTimer = null;
     this.hitFlashTimer = null;
   }
@@ -103,6 +110,14 @@ export class UIManager {
     this.nearMiss.classList.remove('active');
     void this.nearMiss.offsetWidth;
     this.nearMiss.classList.add('active');
+  }
+
+  showMissionComplete(label) {
+    if (!this.missionToast) return;
+    this.missionToast.textContent = `MISSION COMPLETE: ${label}`;
+    this.missionToast.classList.remove('active');
+    void this.missionToast.offsetWidth;
+    this.missionToast.classList.add('active');
   }
 
   showZone(name, prefix = 'ENTERING') {
@@ -147,6 +162,7 @@ export class UIManager {
     this.boost.value = stats.boostReady ? 'READY' : `${Math.ceil(stats.boostCooldown * 10) / 10}s`;
     this.hyper.classList.toggle('active', Boolean(stats.hyperActive));
     this.root.dataset.hyper = stats.hyperActive ? 'true' : 'false';
+    this._renderMissions(stats.missions || []);
     this.shield.innerHTML = '';
     for (let i = 0; i < stats.maxShield; i += 1) {
       const item = document.createElement('i');
@@ -185,7 +201,9 @@ export class UIManager {
       const bestScore = newBest ? score : previousBest;
       if (newBest) this._writeBestScore(score);
       const rank = this._rankFor(score);
+      const nextRank = this._nextRankFor(score);
       const rankClass = rank === 'S' || rank === 'S+' ? 'elite' : '';
+      const completedMissions = (stats.missions || []).filter((mission) => mission.complete).length;
       this.panel.innerHTML = `
         <h1>GAME OVER</h1>
         ${newBest ? '<p class="new-best">NEW BEST!</p>' : ''}
@@ -194,10 +212,31 @@ export class UIManager {
           <span>DISTANCE</span><strong>${distance.toLocaleString('en-US')}M</strong>
           <span>BEST SCORE</span><strong>${bestScore.toLocaleString('en-US')}</strong>
           <span>RANK</span><strong class="rank ${rankClass}">${rank}</strong>
+          <span>MAX COMBO</span><strong>X ${stats.maxCombo}</strong>
+          <span>NEAR MISS</span><strong>${stats.nearMisses}</strong>
+          <span>HYPER</span><strong>${stats.hyperCount}</strong>
+          <span>MISSIONS</span><strong>${completedMissions} / ${(stats.missions || []).length}</strong>
         </div>
+        ${nextRank ? `<p class="next-rank">${nextRank.remaining.toLocaleString('en-US')} POINTS TO RANK ${nextRank.rank}</p>` : '<p class="next-rank">MAX RANK REACHED</p>'}
         <p>PRESS <kbd>SPACE</kbd> TO RESTART</p>
       `;
     }
+  }
+
+  _renderMissions(missions) {
+    if (!this.missions) return;
+    this.missions.innerHTML = missions
+      .map((mission) => {
+        const progress = mission.target > 0 ? Math.round((mission.value / mission.target) * 100) : 0;
+        return `
+          <div class="mission-item ${mission.complete ? 'complete' : ''}">
+            <span>${mission.label}</span>
+            <strong>${mission.value} / ${mission.target}</strong>
+            <i style="--progress: ${progress}%"></i>
+          </div>
+        `;
+      })
+      .join('');
   }
 
   _rankFor(score) {
@@ -206,6 +245,21 @@ export class UIManager {
     if (score >= 11000) return 'A';
     if (score >= 5000) return 'B';
     return 'C';
+  }
+
+  _nextRankFor(score) {
+    const ranks = [
+      { rank: 'B', score: 5000 },
+      { rank: 'A', score: 11000 },
+      { rank: 'S', score: 18000 },
+      { rank: 'S+', score: 26000 },
+    ];
+    const next = ranks.find((rank) => score < rank.score);
+    if (!next) return null;
+    return {
+      rank: next.rank,
+      remaining: next.score - score,
+    };
   }
 
   _readBestScore() {
