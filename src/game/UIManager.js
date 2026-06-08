@@ -112,12 +112,25 @@ export class UIManager {
     this.nearMiss.classList.add('active');
   }
 
-  showMissionComplete(label) {
+  showMissionComplete(label, reward = 0, tier = 'easy') {
     if (!this.missionToast) return;
-    this.missionToast.textContent = `MISSION COMPLETE: ${label}`;
-    this.missionToast.classList.remove('active');
+    this.missionToast.textContent = `MISSION COMPLETE [${tier.toUpperCase()}]: ${label} +${reward}`;
+    this.missionToast.classList.remove('active', 'failed');
     void this.missionToast.offsetWidth;
     this.missionToast.classList.add('active');
+  }
+
+  showMissionFailed(label) {
+    if (!this.missionToast) return;
+    this.missionToast.textContent = `MISSION FAILED: ${label}`;
+    this.missionToast.classList.remove('active', 'failed');
+    void this.missionToast.offsetWidth;
+    this.missionToast.classList.add('active', 'failed');
+  }
+
+  setMissionFocus(visual = {}) {
+    this.root.dataset.missionElite = visual.eliteActive ? 'true' : 'false';
+    this.root.dataset.missionUrgent = visual.urgent ? 'true' : 'false';
   }
 
   showZone(name, prefix = 'ENTERING') {
@@ -203,7 +216,7 @@ export class UIManager {
       const rank = this._rankFor(score);
       const nextRank = this._nextRankFor(score);
       const rankClass = rank === 'S' || rank === 'S+' ? 'elite' : '';
-      const completedMissions = (stats.missions || []).filter((mission) => mission.complete).length;
+      const completedMissions = stats.completedMissions ?? (stats.missions || []).filter((mission) => mission.complete).length;
       this.panel.innerHTML = `
         <h1>GAME OVER</h1>
         ${newBest ? '<p class="new-best">NEW BEST!</p>' : ''}
@@ -215,7 +228,7 @@ export class UIManager {
           <span>MAX COMBO</span><strong>X ${stats.maxCombo}</strong>
           <span>NEAR MISS</span><strong>${stats.nearMisses}</strong>
           <span>HYPER</span><strong>${stats.hyperCount}</strong>
-          <span>MISSIONS</span><strong>${completedMissions} / ${(stats.missions || []).length}</strong>
+          <span>MISSIONS</span><strong>${completedMissions} DONE</strong>
         </div>
         ${nextRank ? `<p class="next-rank">${nextRank.remaining.toLocaleString('en-US')} POINTS TO RANK ${nextRank.rank}</p>` : '<p class="next-rank">MAX RANK REACHED</p>'}
         <p>PRESS <kbd>SPACE</kbd> TO RESTART</p>
@@ -227,11 +240,19 @@ export class UIManager {
     if (!this.missions) return;
     this.missions.innerHTML = missions
       .map((mission) => {
-        const progress = mission.target > 0 ? Math.round((mission.value / mission.target) * 100) : 0;
+        const progress = mission.target > 0 ? Math.max(0, Math.min(100, Math.round((mission.value / mission.target) * 100))) : 0;
+        const timeText = mission.timeLeft != null ? `<em>${Math.ceil(mission.timeLeft)}s</em>` : '';
+        const statusText = mission.failed ? 'FAILED' : mission.complete ? 'DONE' : `+${mission.reward}`;
+        const timeLimitUrgent = mission.timeLimit && mission.timeLeft <= Math.min(6, mission.timeLimit * 0.35);
+        const statusClass = `${mission.failed ? 'failed' : mission.complete ? 'complete' : mission.tier} ${timeLimitUrgent ? 'urgent' : ''}`;
         return `
-          <div class="mission-item ${mission.complete ? 'complete' : ''}">
-            <span>${mission.label}</span>
+          <div class="mission-item ${statusClass}" data-tier="${mission.tier}">
+            <span>
+              <b>${mission.tier}</b>
+              ${mission.label}
+            </span>
             <strong>${mission.value} / ${mission.target}</strong>
+            <small>${statusText}${timeText}</small>
             <i style="--progress: ${progress}%"></i>
           </div>
         `;

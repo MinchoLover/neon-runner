@@ -156,6 +156,18 @@ body {
   padding-bottom: 12px;
 }
 
+[data-mission-elite="true"] .mission-block {
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 0 24px rgba(255, 49, 247, 0.28),
+    0 0 18px rgba(0, 229, 255, 0.2),
+    inset 0 0 22px rgba(255, 255, 255, 0.08);
+}
+
+[data-mission-urgent="true"] .mission-block {
+  animation: mission-urgent-pulse 0.72s ease-in-out infinite alternate;
+}
+
 .mission-list {
   display: grid;
   gap: 9px;
@@ -172,7 +184,8 @@ body {
 }
 
 .mission-item span,
-.mission-item strong {
+.mission-item strong,
+.mission-item small {
   position: relative;
   z-index: 1;
   font-size: 0.78rem;
@@ -188,6 +201,31 @@ body {
   color: #5cf4ff;
   text-align: right;
   white-space: nowrap;
+}
+
+.mission-item small {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  color: rgba(234, 247, 255, 0.74);
+}
+
+.mission-item small em {
+  color: #ff8a00;
+  font-style: normal;
+  text-shadow: 0 0 9px rgba(255, 138, 0, 0.75);
+}
+
+.mission-item b {
+  display: inline-block;
+  min-width: 42px;
+  margin-right: 5px;
+  color: #03010c;
+  background: #5cf4ff;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.58rem;
+  line-height: 1.35;
 }
 
 .mission-item i {
@@ -208,10 +246,56 @@ body {
   box-shadow: 0 0 10px rgba(0, 229, 255, 0.65);
 }
 
+.mission-item.hard b {
+  background: #ff8a00;
+}
+
+.mission-item.elite b {
+  color: #03010c;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
+}
+
+.mission-item.urgent {
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.12), rgba(255, 39, 79, 0.08), transparent);
+}
+
+.mission-item.urgent i::before {
+  background: linear-gradient(90deg, #ff8a00, #ff274f);
+  box-shadow: 0 0 12px rgba(255, 138, 0, 0.72);
+}
+
+.mission-item.failed span,
+.mission-item.failed strong,
+.mission-item.failed small {
+  color: #ff8a9d;
+}
+
+.mission-item.failed i::before {
+  width: 100%;
+  background: linear-gradient(90deg, #ff274f, #ff8a00);
+}
+
 .mission-item.complete span,
-.mission-item.complete strong {
+.mission-item.complete strong,
+.mission-item.complete small {
   color: #ffffff;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
+}
+
+@keyframes mission-urgent-pulse {
+  from {
+    border-color: rgba(255, 138, 0, 0.46);
+    box-shadow:
+      0 0 18px rgba(255, 138, 0, 0.12),
+      inset 0 0 18px rgba(255, 49, 247, 0.08);
+  }
+  to {
+    border-color: rgba(255, 138, 0, 0.78);
+    box-shadow:
+      0 0 28px rgba(255, 138, 0, 0.28),
+      inset 0 0 22px rgba(255, 138, 0, 0.12);
+  }
 }
 
 .hud-block .combo {
@@ -558,6 +642,15 @@ kbd {
 
 .mission-toast.active {
   animation: mission-toast-pop 1.4s ease-out;
+}
+
+.mission-toast.failed {
+  border-color: rgba(255, 39, 79, 0.72);
+  background: rgba(36, 2, 12, 0.82);
+  text-shadow: 0 0 12px rgba(255, 39, 79, 0.9);
+  box-shadow:
+    0 0 22px rgba(255, 39, 79, 0.28),
+    inset 0 0 16px rgba(255, 138, 0, 0.12);
 }
 
 .turn-prompt {

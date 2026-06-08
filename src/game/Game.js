@@ -4,6 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { AudioManager } from './AudioManager.js';
 import { COLORS, GAME, TUNNEL_PALETTES } from './constants.js';
+import { MissionManager } from './MissionManager.js';
 import { ObstacleManager } from './ObstacleManager.js';
 import { ParticleManager } from './ParticleManager.js';
 import { Player } from './Player.js';
@@ -36,7 +37,14 @@ export class Game {
       hyperCount: 0,
       riftTurns: 0,
       boostsUsed: 0,
+      hitsTaken: 0,
+      completedMissions: 0,
       missions: [],
+      missionVisual: {
+        intensity: 0,
+        eliteActive: false,
+        urgent: false,
+      },
     };
     this.elapsed = 0;
     this.boostTimer = 0;
@@ -52,10 +60,12 @@ export class Game {
     this.crashSpeed = 0;
     this.shake = 0;
     this.turnPulseTimer = 0;
+    this.missionPulseTimer = 0;
+    this.riftTurnChain = 0;
     this.activePalette = TUNNEL_PALETTES[0];
     this.tutorialCues = new Set();
-    this.completedMissionIds = new Set();
-    this.stats.missions = this._createMissions();
+    this.missionManager = new MissionManager();
+    this.stats.missions = this.missionManager.reset(this.stats);
 
     this._setupScene();
     this._setupWorld();
@@ -65,6 +75,8 @@ export class Game {
   }
 
   start() {
+    // setAnimationLoop is Three.js' requestAnimationFrame-backed real-time loop.
+    // Each tick uses delta time so movement remains stable across frame rates.
     this.renderer.setAnimationLoop((timestamp) => this._tick(timestamp));
   }
 
@@ -73,10 +85,14 @@ export class Game {
     this.scene.background = new THREE.Color(COLORS.dark);
     this.scene.fog = new THREE.FogExp2(0x04000f, 0.028);
 
+    // PerspectiveCamera defines the view frustum. Three.js projects visible 3D geometry
+    // through this camera; clipping and viewport/screen mapping are handled by WebGLRenderer.
     this.camera = new THREE.PerspectiveCamera(66, window.innerWidth / window.innerHeight, 0.1, 150);
     this.camera.position.set(0, 1.34, 10.65);
     this.camera.lookAt(0, -0.8, -12);
 
+    // Rendering pipeline: scene + camera are rendered into a WebGL canvas, then routed
+    // through EffectComposer so bloom can be applied as a post-processing pass.
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
       antialias: true,
@@ -100,6 +116,8 @@ export class Game {
     this.composer.addPass(bloomPass);
     this.bloomPass = bloomPass;
     this.baseBloomStrength = bloomPass.strength;
+    this.baseBloomRadius = bloomPass.radius;
+    this.baseBloomThreshold = bloomPass.threshold;
   }
 
   _setupWorld() {
@@ -174,6 +192,7 @@ export class Game {
     this.stats.boostsUsed += 1;
     this.shake = Math.max(this.shake, 0.12);
     this.audio.play('boost');
+    this._recordMissionEvent('boost');
   }
 
   _handleTurnInput(direction) {
@@ -202,6 +221,8 @@ export class Game {
     this.crashSpeed = 0;
     this.shake = 0;
     this.turnPulseTimer = 0;
+    this.missionPulseTimer = 0;
+    this.riftTurnChain = 0;
     this.stats.score = 0;
     this.stats.combo = 0;
     this.stats.distance = 0;
@@ -216,9 +237,15 @@ export class Game {
     this.stats.hyperCount = 0;
     this.stats.riftTurns = 0;
     this.stats.boostsUsed = 0;
-    this.stats.missions = this._createMissions();
+    this.stats.hitsTaken = 0;
+    this.stats.completedMissions = 0;
+    this.stats.missionVisual = {
+      intensity: 0,
+      eliteActive: false,
+      urgent: false,
+    };
+    this.stats.missions = this.missionManager.reset(this.stats);
     this.tutorialCues.clear();
-    this.completedMissionIds.clear();
     this.player.reset();
     this.obstacles.reset();
     this.particles.reset();
@@ -290,6 +317,7 @@ export class Game {
     this.hyperTimer = Math.max(this.hyperTimer - delta, 0);
     this.turnPulseTimer = Math.max(this.turnPulseTimer - delta, 0);
     this.startPulseTimer = Math.max(this.startPulseTimer - delta, 0);
+    this.missionPulseTimer = Math.max(this.missionPulseTimer - delta, 0);
     const wasHyper = this.stats.hyperActive;
     this.stats.hyperActive = this.hyperTimer > 0;
     this.stats.hyperTime = this.hyperTimer;
@@ -321,7 +349,7 @@ export class Game {
       onTurnGate: (direction, position) => this._handleTurnGate(direction, position),
     });
 
-    this._syncMissions();
+    this._syncMissions(delta);
     this.ui.update(this.stats);
   }
 
@@ -354,6 +382,7 @@ export class Game {
     this.particles.sparkle(this.player.group.position, this.stats.hyperActive ? 18 : 9);
     this.audio.play('pass');
     if (this.stats.combo > 0 && this.stats.combo % 4 === 0) this.audio.play('combo');
+    this._recordMissionEvent('passed');
     this._maybeStartHyper();
   }
 
@@ -368,12 +397,13 @@ export class Game {
     this.particles.nearMiss(position);
     this.audio.play('near');
     this.shake = Math.max(this.shake, 0.12);
+    this._recordMissionEvent('nearMiss');
     this._maybeStartHyper();
   }
 
   _maybeStartHyper() {
     if (this.stats.hyperActive) return;
-    if (this.stats.combo >= GAME.hyperCombo || this.nearMissChain >= 4 || this.stats.distance > 650) {
+    if (this.stats.combo >= GAME.hyperCombo || this.nearMissChain >= 4 || this.riftTurnChain >= 2) {
       this.hyperTimer = GAME.hyperDuration;
       this.stats.hyperActive = true;
       this.stats.hyperCount += 1;
@@ -394,6 +424,7 @@ export class Game {
     this.stats.combo += 2;
     this.stats.maxCombo = Math.max(this.stats.maxCombo, this.stats.combo);
     this.stats.riftTurns += 1;
+    this.riftTurnChain += 1;
     this.stats.score += 260 * (this.stats.hyperActive ? 2 : 1);
     this.ui.showTurnResult('PERFECT TURN');
     window.setTimeout(() => {
@@ -403,6 +434,7 @@ export class Game {
     this.particles.riftBurst(new THREE.Vector3(0, -0.45, -6), 34);
     this.audio.play('turnSuccess');
     this.audio.play('tunnelTransition');
+    this._recordMissionEvent('riftTurn');
     this._maybeStartHyper();
   }
 
@@ -416,11 +448,13 @@ export class Game {
     this.tunnel.setVisualMode('straight', 0);
     this.ui.showTurnResult('MISSED TURN', true);
     this.audio.play('turnFail');
+    this.riftTurnChain = 0;
+    this._recordMissionEvent('riftMiss');
     this._handleHit(position, obstacle);
   }
 
   _syncPalette(delta) {
-    const palette = this.tunnel.updatePaletteTransition(delta, this.stats.hyperActive);
+    const palette = this.tunnel.updatePaletteTransition(delta, this.stats.hyperActive, this.stats.missionVisual);
     this.activePalette = palette;
     this.obstacles.setPalette(palette);
     this.particles.setPalette(palette, this.stats.hyperActive);
@@ -435,8 +469,10 @@ export class Game {
     if (this.invincibleTime > 0) return;
 
     this.stats.shield -= 1;
+    this.stats.hitsTaken += 1;
     this.stats.combo = 0;
     this.nearMissChain = 0;
+    this.riftTurnChain = 0;
     this.invincibleTime = 1;
     this.hitFlashTime = 0.22;
     this.shake = 0.5;
@@ -444,6 +480,7 @@ export class Game {
     this.ui.flashHit();
     this.ui.flashShield();
     this.audio.play('hit');
+    this._recordMissionEvent('hit');
     if (obstacle?.type === 'turnGate') {
       this.ui.showTurnResult('TURN MISSED', true);
       this.audio.play('warning');
@@ -465,75 +502,44 @@ export class Game {
     }
   }
 
-  _createMissions() {
-    const pool = [
-      {
-        id: 'distance-650',
-        label: 'Reach 650M',
-        target: 650,
-        read: () => Math.floor(this.stats.distance),
-      },
-      {
-        id: 'score-9000',
-        label: 'Score 9,000',
-        target: 9000,
-        read: () => Math.floor(this.stats.score),
-      },
-      {
-        id: 'combo-14',
-        label: 'Hit X 14 Combo',
-        target: 14,
-        read: () => this.stats.maxCombo,
-      },
-      {
-        id: 'near-5',
-        label: 'Near Miss 5',
-        target: 5,
-        read: () => this.stats.nearMisses,
-      },
-      {
-        id: 'hyper-1',
-        label: 'Enter Hyper',
-        target: 1,
-        read: () => this.stats.hyperCount,
-      },
-      {
-        id: 'rift-2',
-        label: 'Perfect Turn 2',
-        target: 2,
-        read: () => this.stats.riftTurns,
-      },
-      {
-        id: 'boost-4',
-        label: 'Boost 4 Times',
-        target: 4,
-        read: () => this.stats.boostsUsed,
-      },
-    ];
-
-    return pool
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .map((mission) => ({
-        id: mission.id,
-        label: mission.label,
-        target: mission.target,
-        value: 0,
-        complete: false,
-        read: mission.read,
-      }));
+  _recordMissionEvent(eventName) {
+    this._handleMissionEvents(this.missionManager.record(eventName, this.stats));
   }
 
-  _syncMissions() {
-    for (const mission of this.stats.missions) {
-      mission.value = Math.min(mission.read(), mission.target);
-      const wasComplete = mission.complete;
-      mission.complete = mission.value >= mission.target;
-      if (!wasComplete && mission.complete && !this.completedMissionIds.has(mission.id)) {
-        this.completedMissionIds.add(mission.id);
-        this.stats.score += 550;
-        this.ui.showMissionComplete(mission.label);
+  _syncMissions(delta) {
+    const result = this.missionManager.update(delta, this.stats);
+    this.stats.missions = result.missions;
+    this.stats.missionVisual = result.visual;
+    this.ui.setMissionFocus(result.visual);
+    this._handleMissionEvents(result.events);
+  }
+
+  _handleMissionEvents(events) {
+    for (const event of events) {
+      if (event.type === 'complete') {
+        const { mission } = event;
+        this.stats.completedMissions += 1;
+        this.stats.score += mission.reward;
+        if (mission.tier === 'elite') {
+          this.stats.shield = Math.min(this.stats.shield + 1, this.stats.maxShield);
+          this.boostCooldown = 0;
+        }
+        this.missionPulseTimer = 0.85;
+        this.startPulseTimer = Math.max(this.startPulseTimer, 0.28);
+        this.shake = Math.max(this.shake, mission.tier === 'elite' ? 0.28 : 0.16);
+        this.particles.riftBurst(new THREE.Vector3(0, -0.45, -6), mission.tier === 'elite' ? 46 : 28);
+        this.ui.showMissionComplete(mission.label, mission.reward, mission.tier);
+        this.tunnel.pulseMissionFeedback(mission.tier);
         this.audio.play('zoneEnter');
+      }
+
+      if (event.type === 'fail') {
+        this.missionPulseTimer = 0.35;
+        this.shake = Math.max(this.shake, 0.14);
+        this.particles.warningBurst(this.player.group.position, event.mission.tier === 'elite' ? 24 : 16);
+        this.ui.showMissionFailed(event.mission.label);
+        this.tunnel.pulseMissionFeedback('failed');
+        this.audio.play('warning');
       }
     }
   }
@@ -561,6 +567,7 @@ export class Game {
     this.tunnel.group.rotation.y = THREE.MathUtils.damp(this.tunnel.group.rotation.y, 0, 6, delta);
     const activeRun = this.state === 'playing' || this.state === 'crashing';
     const targetY = activeRun ? 1.3 + this.player.group.position.y * 0.08 : 1.54;
+    // Camera motion changes the view transform, while each mesh keeps its own model transform.
     this.camera.position.z = THREE.MathUtils.damp(this.camera.position.z, targetZ + startPush, 5, delta);
     this.camera.position.y = THREE.MathUtils.damp(this.camera.position.y, targetY, 4, delta);
     this.camera.position.x = THREE.MathUtils.damp(this.camera.position.x, this.player.group.position.x * 0.12, 5, delta);
@@ -576,7 +583,9 @@ export class Game {
       (this.boostTimer > 0 ? 2.5 : 0) +
       (this.stats.hyperActive ? 3.5 : 0) +
       (this.startPulseTimer > 0 ? 2 : 0) +
-      (this.turnPulseTimer > 0 ? 1.5 : 0);
+      (this.turnPulseTimer > 0 ? 1.5 : 0) +
+      (this.hitFlashTime > 0 ? 1.2 : 0) +
+      ((this.stats.missionVisual?.eliteActive ? 0.7 : 0) + (this.stats.missionVisual?.urgent ? 0.5 : 0));
     this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 5, delta);
     this.camera.updateProjectionMatrix();
     this.camera.lookAt(this.player.group.position.x * 0.16, -0.75 + this.player.group.position.y * 0.08, -15);
@@ -585,8 +594,16 @@ export class Game {
   _updateBloomPulse() {
     if (!this.bloomPass) return;
     const pulse = this.startPulseTimer > 0 ? (this.startPulseTimer / 0.4) * 0.32 : 0;
+    const boost = this.boostTimer > 0 ? 0.1 : 0;
     const hyper = this.stats.hyperActive ? 0.18 : 0;
-    this.bloomPass.strength = this.baseBloomStrength + pulse + hyper;
+    const hit = this.hitFlashTime > 0 ? 0.16 : 0;
+    const mission = (this.stats.missionVisual?.intensity ?? 0) * 0.16;
+    const missionPulse = this.missionPulseTimer > 0 ? this.missionPulseTimer * 0.2 : 0;
+    const urgent = this.stats.missionVisual?.urgent ? 0.08 : 0;
+    // Bloom post-processing brightens emissive neon surfaces after the scene render pass.
+    this.bloomPass.strength = this.baseBloomStrength + pulse + boost + hyper + hit + mission + missionPulse + urgent;
+    this.bloomPass.radius = this.baseBloomRadius + (this.stats.hyperActive ? 0.04 : 0) + (this.stats.missionVisual?.eliteActive ? 0.03 : 0);
+    this.bloomPass.threshold = this.baseBloomThreshold - (this.boostTimer > 0 || this.stats.hyperActive ? 0.02 : 0);
   }
 
   _resize() {

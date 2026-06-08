@@ -73,4 +73,3 @@ public/
 - Vite
 - Three.js
 - JavaScript modules
-

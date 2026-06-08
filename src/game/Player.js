@@ -468,6 +468,7 @@ export class Player {
   }
 
   update(delta, boostFactor, invincibleTime = 0, hitFlashTime = 0) {
+    // Lane movement is an x-axis translation target smoothed by delta-time interpolation.
     this.group.position.x = THREE.MathUtils.damp(this.group.position.x, this.targetPosition.x, 10, delta);
     this.group.position.y = THREE.MathUtils.damp(this.group.position.y, this.targetPosition.y, 10, delta);
     this.group.position.z = THREE.MathUtils.damp(this.group.position.z, this.targetPosition.z, 8, delta);
@@ -536,6 +537,7 @@ export class Player {
   }
 
   updateHitBox() {
+    // A simple world-space Box3 supports collision explanation without expensive mesh tests.
     this.hitBox.setFromCenterAndSize(this.group.position, new THREE.Vector3(0.82, 0.58, 1.18));
   }
 }

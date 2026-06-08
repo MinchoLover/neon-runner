@@ -1,6 +1,36 @@
 import * as THREE from 'three';
 import { COLORS, HYPER_PALETTE, LANE_COUNT, TUNNEL_PALETTES, getLaneAngle, getLanePosition } from './constants.js';
 
+const MISSION_PALETTES = {
+  hard: {
+    primary: 0x00e5ff,
+    secondary: 0xff31f7,
+    accent: 0xffffff,
+    obstacle: 0xff31f7,
+    light: 0x00e5ff,
+    fog: 0x080015,
+    background: 0x050010,
+  },
+  elite: {
+    primary: 0xffffff,
+    secondary: 0xff31f7,
+    accent: 0x00e5ff,
+    obstacle: 0xffffff,
+    light: 0xffffff,
+    fog: 0x120018,
+    background: 0x06000f,
+  },
+  failed: {
+    primary: 0xff274f,
+    secondary: 0xff8a00,
+    accent: 0xffffff,
+    obstacle: 0xff274f,
+    light: 0xff274f,
+    fog: 0x140208,
+    background: 0x090106,
+  },
+};
+
 export class Tunnel {
   constructor(scene) {
     this.group = new THREE.Group();
@@ -26,6 +56,9 @@ export class Tunnel {
     this.isPaletteTransitioning = false;
     this.riftPulse = 0;
     this.hyperBlend = 0;
+    this.missionBlend = 0;
+    this.missionPulse = 0;
+    this.missionTone = 'hard';
     this.visualMode = 'straight';
     this.visualModeTimer = 0;
     this._build();
@@ -97,6 +130,7 @@ export class Tunnel {
       const angle = Math.random() * Math.PI * 2;
       positions.push(Math.cos(angle) * radius, Math.sin(angle) * radius, -Math.random() * 95);
     }
+    // BufferGeometry stores vertex attributes that Three.js uploads to WebGL buffers.
     starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     const stars = new THREE.Points(
       starGeometry,
@@ -144,6 +178,11 @@ export class Tunnel {
     this.visualModeTimer = duration;
   }
 
+  pulseMissionFeedback(tier) {
+    this.missionTone = tier === 'elite' || tier === 'failed' ? tier : 'hard';
+    this.missionPulse = tier === 'elite' ? 0.85 : 0.55;
+  }
+
   highlightSafeLane(lane) {
     const marker = this.safeLaneMarkers[lane];
     if (!marker) return;
@@ -176,7 +215,7 @@ export class Tunnel {
     return this.currentPalette;
   }
 
-  updatePaletteTransition(delta, hyperActive = false) {
+  updatePaletteTransition(delta, hyperActive = false, missionVisual = null) {
     if (this.isPaletteTransitioning) {
       this.paletteTransitionTime += delta;
       const t = THREE.MathUtils.smoothstep(
@@ -193,8 +232,18 @@ export class Tunnel {
     }
 
     this.riftPulse = Math.max(this.riftPulse - delta, 0);
+    this.missionPulse = Math.max(this.missionPulse - delta, 0);
     this.hyperBlend = THREE.MathUtils.damp(this.hyperBlend, hyperActive ? 0.72 : 0, 5, delta);
-    const palette = this.hyperBlend > 0.01 ? this._lerpPalette(this.displayPalette, HYPER_PALETTE, this.hyperBlend) : this.displayPalette;
+    // Palette interpolation turns gameplay state into material color changes without a hard cut.
+    const targetMissionBlend =
+      (missionVisual?.eliteActive ? 0.22 : missionVisual?.intensity ? missionVisual.intensity * 0.12 : 0) +
+      (missionVisual?.urgent ? 0.045 : 0);
+    this.missionBlend = THREE.MathUtils.damp(this.missionBlend, targetMissionBlend + this.missionPulse * 0.18, 4, delta);
+    let palette = this.hyperBlend > 0.01 ? this._lerpPalette(this.displayPalette, HYPER_PALETTE, this.hyperBlend) : this.displayPalette;
+    if (this.missionBlend > 0.01) {
+      const missionPalette = MISSION_PALETTES[this.missionTone] ?? MISSION_PALETTES.hard;
+      palette = this._lerpPalette(palette, missionPalette, Math.min(this.missionBlend, 0.38));
+    }
     this.applyPaletteToMaterials(palette);
     return palette;
   }
@@ -205,6 +254,7 @@ export class Tunnel {
     const accent = new THREE.Color(palette.accent);
     const pulse = this.riftPulse > 0 ? this.riftPulse * 0.55 : 0;
 
+    // Material color interpolation is the visible palette transition across tunnel meshes.
     this.ringMaterials.forEach((material, index) => {
       material.color.copy(index % 2 ? secondary : primary).lerp(accent, pulse);
     });
@@ -232,6 +282,8 @@ export class Tunnel {
   update(delta, speed, hyper = 0) {
     const movement = speed * delta;
     for (const ring of this.rings) {
+      // Geometry transformation: advancing position.z and rotation.z moves mesh vertices
+      // through the camera view while the GPU applies model-view-projection matrices.
       ring.position.z += movement;
       ring.rotation.z += delta * (0.12 + hyper * 0.34);
       if (ring.position.z > 8) {

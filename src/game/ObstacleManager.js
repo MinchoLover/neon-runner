@@ -55,6 +55,7 @@ export class ObstacleManager {
     const obstacleColor = palette.obstacle ?? palette.secondary;
     const primary = palette.primary ?? COLORS.cyan;
     const secondary = palette.secondary ?? COLORS.magenta;
+    // Emissive color feeds the neon look before bloom exaggerates bright fragments.
     this.boxMaterial.color.setHex(obstacleColor).multiplyScalar(0.28);
     this.boxMaterial.emissive.setHex(obstacleColor);
     this.barMaterial.color.setHex(primary).multiplyScalar(0.22);
@@ -76,6 +77,7 @@ export class ObstacleManager {
 
     for (let i = this.obstacles.length - 1; i >= 0; i -= 1) {
       const obstacle = this.obstacles[i];
+      // Obstacles approach the camera by z-axis translation; bars add rotation transform.
       obstacle.group.position.z += speed * delta;
       if (obstacle.type === 'bar') {
         for (const rod of obstacle.rods) rod.rotation.z += obstacle.spinSpeed * delta;
@@ -199,6 +201,7 @@ export class ObstacleManager {
 
   _hitsPlayer(obstacle, callbacks) {
     if (obstacle.type === 'turnGate') return false;
+    // Collision detection is simplified to lane overlap plus a narrow z-distance test.
     const sameLaneBlocked = obstacle.blockedLanes.includes(callbacks.playerLane);
     const closeZ = Math.abs(obstacle.group.position.z - GAME.playerZ) < PLAYER_HIT_Z_RANGE;
     return sameLaneBlocked && closeZ;
