@@ -9,14 +9,20 @@ import {
   getWrappedLaneIndex,
 } from './constants.js';
 
-const PLAYER_MODEL_TARGET_WIDTH = 2.05;
-const PLAYER_MODEL_MAX_HEIGHT = 1.12;
-const PLAYER_MODEL_MAX_DEPTH = 2.45;
-const PLAYER_MODEL_VERTICAL_OFFSET = 0.12;
-const PLAYER_MODEL_Z_OFFSET = -0.04;
+const PLAYER_MODEL_TARGET_WIDTH = 2.15; // Increased presence
+const PLAYER_MODEL_MAX_HEIGHT = 1.15;
+const PLAYER_MODEL_MAX_DEPTH = 2.5;
+const PLAYER_MODEL_VERTICAL_OFFSET = 0.18;
+const PLAYER_MODEL_Z_OFFSET = -0.12;
 const PLAYER_MODEL_SCALE_MULTIPLIER = 1;
-const FALLBACK_VISUAL_SCALE = 0.7;
+const FALLBACK_VISUAL_SCALE = 0.85;
 const MODEL_ROTATION_OFFSET = { x: 0, y: Math.PI, z: 0 };
+const PLAYER_MATERIAL_STYLE = {
+  body: 0x111827,
+  panel: 0x1f2937,
+  trim: 0x2d1633,
+  cockpit: 0x9eeaff,
+};
 
 export class Player {
   constructor() {
@@ -60,25 +66,25 @@ export class Player {
 
   _buildShip() {
     const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf7fbff,
-      metalness: 0.38,
-      roughness: 0.18,
-      emissive: 0xe8f4ff,
-      emissiveIntensity: 0.22,
+      color: PLAYER_MATERIAL_STYLE.body,
+      metalness: 0.62,
+      roughness: 0.24,
+      emissive: 0x08121f,
+      emissiveIntensity: 0.16,
     });
     const panelMaterial = new THREE.MeshStandardMaterial({
-      color: 0xdff8ff,
-      metalness: 0.3,
-      roughness: 0.22,
-      emissive: 0xbdeeff,
-      emissiveIntensity: 0.18,
+      color: PLAYER_MATERIAL_STYLE.panel,
+      metalness: 0.54,
+      roughness: 0.26,
+      emissive: 0x0c1a2c,
+      emissiveIntensity: 0.16,
     });
     const trimMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffe9fb,
-      metalness: 0.32,
-      roughness: 0.2,
-      emissive: 0xffc4f2,
-      emissiveIntensity: 0.24,
+      color: PLAYER_MATERIAL_STYLE.trim,
+      metalness: 0.5,
+      roughness: 0.22,
+      emissive: COLORS.solarOrange,
+      emissiveIntensity: 0.34,
     });
     const cyan = new THREE.MeshStandardMaterial({
       color: COLORS.cyan,
@@ -87,36 +93,36 @@ export class Player {
       metalness: 0.25,
       roughness: 0.2,
     });
-    const magenta = new THREE.MeshStandardMaterial({
-      color: COLORS.magenta,
-      emissive: COLORS.magenta,
+    const solarOrange = new THREE.MeshStandardMaterial({
+      color: COLORS.solarOrange,
+      emissive: COLORS.solarOrange,
       emissiveIntensity: 1,
       metalness: 0.15,
       roughness: 0.18,
     });
-    const purple = new THREE.MeshStandardMaterial({
-      color: COLORS.purple,
-      emissive: COLORS.purple,
+    const amber = new THREE.MeshStandardMaterial({
+      color: COLORS.amber,
+      emissive: COLORS.amber,
       emissiveIntensity: 0.66,
       metalness: 0.2,
       roughness: 0.2,
     });
     const glass = new THREE.MeshStandardMaterial({
-      color: 0xfbfdff,
-      emissive: 0xe2f7ff,
-      emissiveIntensity: 1,
+      color: PLAYER_MATERIAL_STYLE.cockpit,
+      emissive: COLORS.cyan,
+      emissiveIntensity: 0.95,
       metalness: 0.2,
       roughness: 0.08,
       transparent: true,
       opacity: 0.94,
     });
-    this.materials = [bodyMaterial, panelMaterial, trimMaterial, cyan, magenta, purple, glass];
+    this.materials = [bodyMaterial, panelMaterial, trimMaterial, cyan, solarOrange, amber, glass];
     bodyMaterial.userData.flashScale = 0.35;
     panelMaterial.userData.flashScale = 0.25;
     trimMaterial.userData.flashScale = 0.35;
     cyan.userData.flashScale = 1;
-    magenta.userData.flashScale = 1;
-    purple.userData.flashScale = 0.7;
+    solarOrange.userData.flashScale = 1;
+    amber.userData.flashScale = 0.7;
     glass.userData.flashScale = 0.8;
     this.baseEmissiveIntensities = this.materials.map((material) => material.emissiveIntensity);
     this.baseTransparency = this.materials.map((material) => material.transparent);
@@ -234,7 +240,7 @@ export class Player {
       coreGlow.position.set(x, -0.06, 1.15);
       this._addFallback(coreGlow);
 
-      const flame = new THREE.Mesh(flameGeometry, magenta);
+      const flame = new THREE.Mesh(flameGeometry, solarOrange);
       flame.rotation.x = -Math.PI / 2;
       flame.position.set(x, -0.06, 1.55);
       flame.name = 'engineFlame';
@@ -254,7 +260,7 @@ export class Player {
       toneMapped: false,
     });
     const flameMaterial = new THREE.MeshBasicMaterial({
-      color: COLORS.magenta,
+      color: COLORS.solarOrange,
       transparent: true,
       opacity: 0.46,
       blending: THREE.AdditiveBlending,
@@ -390,18 +396,18 @@ export class Player {
   _restyleLoadedMaterial(sourceMaterial, meshName = '') {
     const name = `${meshName} ${sourceMaterial?.name ?? ''}`.toLowerCase();
     const isCockpit = /cockpit|canopy|glass|window|visor/.test(name);
-    const isAccent = /wing|fin|tip|edge|stripe|stripe|panel|nose|body|hull|armor/.test(name);
-    const accentColor = /wing|fin|tip|edge|nose/.test(name) ? 0xdff8ff : 0xffd6f4;
+    const isAccent = /engine|thruster|wing|fin|tip|edge|stripe|panel|nose/.test(name);
+    const accentColor = /engine|thruster|tip|edge/.test(name) ? COLORS.cyan : COLORS.solarOrange;
     const material = new THREE.MeshStandardMaterial({
-      color: isCockpit ? 0xfbfdff : isAccent ? accentColor : 0xf7fbff,
-      metalness: isCockpit ? 0.2 : isAccent ? 0.28 : 0.34,
-      roughness: isCockpit ? 0.1 : isAccent ? 0.18 : 0.2,
-      emissive: isCockpit ? 0xe7fbff : isAccent ? accentColor : 0xe8f2ff,
-      emissiveIntensity: isCockpit ? 1.1 : isAccent ? 0.3 : 0.14,
+      color: isCockpit ? PLAYER_MATERIAL_STYLE.cockpit : isAccent ? PLAYER_MATERIAL_STYLE.trim : PLAYER_MATERIAL_STYLE.body,
+      metalness: isCockpit ? 0.18 : isAccent ? 0.48 : 0.68,
+      roughness: isCockpit ? 0.08 : isAccent ? 0.2 : 0.3,
+      emissive: isCockpit ? COLORS.cyan : isAccent ? accentColor : 0x07111e,
+      emissiveIntensity: isCockpit ? 0.95 : isAccent ? 0.48 : 0.1,
       transparent: isCockpit,
       opacity: isCockpit ? 0.94 : 1,
     });
-    material.userData.kind = isCockpit ? 'cockpit' : 'body';
+    material.userData.kind = isCockpit ? 'cockpit' : isAccent ? 'accent' : 'body';
     material.userData.baseEmissive = material.emissive.clone();
     material.userData.baseEmissiveIntensity = material.emissiveIntensity;
     material.userData.baseTransparent = material.transparent;
@@ -436,8 +442,9 @@ export class Player {
   }
 
   setPalette(palette, hyperActive = false) {
+    this.activePalette = palette;
     const enginePrimary = hyperActive ? 0xffffff : palette.primary ?? COLORS.cyan;
-    const engineSecondary = hyperActive ? COLORS.magenta : palette.secondary ?? COLORS.magenta;
+    const engineSecondary = hyperActive ? COLORS.solarOrange : palette.secondary ?? COLORS.solarOrange;
     if (this.engineGlowMaterials?.[0]) this.engineGlowMaterials[0].color.setHex(enginePrimary);
     if (this.engineGlowMaterials?.[1]) this.engineGlowMaterials[1].color.setHex(engineSecondary);
 
@@ -445,10 +452,13 @@ export class Player {
       if (!material.emissive) continue;
       const base = material.userData.baseEmissive ?? new THREE.Color(0x000000);
       const isCockpit = material.userData.kind === 'cockpit';
-      const bodyBlend = material.color?.getHex() === 0xdff8ff || material.color?.getHex() === 0xffd6f4 ? engineSecondary : enginePrimary;
-      material.emissive.copy(base).lerp(new THREE.Color(isCockpit ? enginePrimary : bodyBlend), isCockpit ? 0.26 : 0.1);
+      const isAccent = material.userData.kind === 'accent';
+      const bodyBlend = isAccent ? engineSecondary : enginePrimary;
+      material.emissive.copy(base).lerp(new THREE.Color(isCockpit ? enginePrimary : bodyBlend), isCockpit ? 0.3 : isAccent ? 0.22 : 0.08);
       material.emissiveIntensity =
-        (material.userData.baseEmissiveIntensity ?? 0) + (isCockpit ? (hyperActive ? 0.52 : 0.22) : hyperActive ? 0.08 : 0.02);
+        (material.userData.baseEmissiveIntensity ?? 0) + (isCockpit ? (hyperActive ? 0.62 : 0.24) : isAccent ? (hyperActive ? 0.22 : 0.08) : hyperActive ? 0.08 : 0.02);
+      material.userData.currentEmissive = material.emissive.clone();
+      material.userData.currentEmissiveIntensity = material.emissiveIntensity;
     }
   }
 
@@ -463,12 +473,11 @@ export class Player {
 
   move(direction) {
     this.lane = getWrappedLaneIndex(this.lane + direction);
-    this.laneMoveImpulse = direction;
+    this.laneMoveImpulse = direction * 1.15;
     this._updateTargetPosition();
   }
 
-  update(delta, boostFactor, invincibleTime = 0, hitFlashTime = 0) {
-    // Lane movement is an x-axis translation target smoothed by delta-time interpolation.
+  update(delta, boostFactor, invincibleTime = 0, hitFlashTime = 0, hyperActive = false, combo = 0, hyperCharge = 0) {
     this.group.position.x = THREE.MathUtils.damp(this.group.position.x, this.targetPosition.x, 10, delta);
     this.group.position.y = THREE.MathUtils.damp(this.group.position.y, this.targetPosition.y, 10, delta);
     this.group.position.z = THREE.MathUtils.damp(this.group.position.z, this.targetPosition.z, 8, delta);
@@ -476,25 +485,49 @@ export class Player {
     const hover = Math.sin(performance.now() * 0.006) * 0.035;
     this.group.position.y += hover;
 
-    const targetRoll = this._targetRoll() + this.laneMoveImpulse * 0.18;
-    this.group.rotation.z = this._dampAngle(this.group.rotation.z, targetRoll, 9, delta);
-    this.group.rotation.y = THREE.MathUtils.damp(this.group.rotation.y, this.laneMoveImpulse * 0.08, 7, delta);
+    const targetRoll = this._targetRoll() + this.laneMoveImpulse * 0.22;
+    this.group.rotation.z = this._dampAngle(this.group.rotation.z, targetRoll, 10, delta);
+    this.group.rotation.y = THREE.MathUtils.damp(this.group.rotation.y, this.laneMoveImpulse * 0.1, 8, delta);
     this.group.rotation.x = THREE.MathUtils.damp(this.group.rotation.x, -0.08, 7, delta);
     this.visualRoot.position.z = THREE.MathUtils.damp(this.visualRoot.position.z, boostFactor > 0 ? -0.12 : 0, 8, delta);
     this.visualRoot.rotation.x = THREE.MathUtils.damp(this.visualRoot.rotation.x, boostFactor > 0 ? -0.035 : 0, 8, delta);
     this.laneMoveImpulse = THREE.MathUtils.damp(this.laneMoveImpulse, 0, 8, delta);
 
+    const comboFactor = Math.min(combo / 10, 1);
+    const chargeFactor = THREE.MathUtils.clamp(hyperCharge / 100, 0, 1);
+    const chargedGlow = chargeFactor < 0.5 ? 0 : (chargeFactor - 0.5) * 2;
+    const visualEnergy = hyperActive ? 1 : Math.max(comboFactor * 0.35, chargedGlow);
+    const readyPulse = chargeFactor >= 0.9 ? 0.5 + Math.sin(performance.now() * 0.018) * 0.5 : 0;
+
+    if (this.engineGlowMaterials && this.engineGlowMaterials.length > 0) {
+      const baseColorHex = hyperActive ? 0xffffff : (this.activePalette?.primary ?? COLORS.cyan);
+      const targetColorHex = hyperActive ? COLORS.solarGold : COLORS.solarOrange;
+      const baseColor = new THREE.Color(baseColorHex);
+      const targetColor = new THREE.Color(targetColorHex);
+      baseColor.lerp(targetColor, visualEnergy * 0.8);
+      this.engineGlowMaterials[0].color.copy(baseColor);
+
+      if (this.engineGlowMaterials[1]) {
+        const secBaseColorHex = hyperActive ? COLORS.solarGold : (this.activePalette?.secondary ?? COLORS.solarOrange);
+        const secTargetColorHex = hyperActive ? 0xffffff : COLORS.amber;
+        const secColor = new THREE.Color(secBaseColorHex);
+        secColor.lerp(new THREE.Color(secTargetColorHex), visualEnergy * 0.8);
+        this.engineGlowMaterials[1].color.copy(secColor);
+      }
+    }
+
     if (this.flames) {
-      const pulse = 1 + Math.sin(performance.now() * 0.02) * 0.1 + boostFactor * 0.38;
+      const pulse = 1 + Math.sin(performance.now() * 0.02) * 0.1 + boostFactor * 0.48 + visualEnergy * 0.28 + readyPulse * 0.12;
       for (const flame of this.flames) {
-        flame.scale.set(pulse, pulse, 1 + boostFactor * 0.72);
+        flame.scale.set(pulse, pulse, 1 + boostFactor * 0.72 + visualEnergy * 0.46 + readyPulse * 0.18);
       }
     }
     if (this.externalFlames) {
-      const pulse = 1 + Math.sin(performance.now() * 0.024) * 0.08 + boostFactor * 0.2;
-      for (const flame of this.externalFlames) flame.scale.set(pulse, pulse, 1 + boostFactor * 0.34);
-      for (const mesh of this.externalAccentMeshes) mesh.scale.setScalar(1 + boostFactor * 0.04);
-      for (const material of this.engineGlowMaterials) material.opacity = 0.4 + boostFactor * 0.24;
+      const energy = boostFactor + (hyperActive ? 0.72 : 0) + visualEnergy * 0.24 + readyPulse * 0.12;
+      const pulse = 1 + Math.sin(performance.now() * 0.024) * 0.08 + energy * 0.26;
+      for (const flame of this.externalFlames) flame.scale.set(pulse, pulse, 1 + energy * 0.38);
+      for (const mesh of this.externalAccentMeshes) mesh.scale.setScalar(1 + energy * 0.052);
+      for (const material of this.engineGlowMaterials) material.opacity = Math.min(0.78, 0.38 + energy * 0.22);
     }
     this._updateDamageVisual(invincibleTime, hitFlashTime);
     this.updateHitBox();
@@ -527,17 +560,16 @@ export class Player {
     });
     this.loadedMaterials.forEach((material) => {
       if (!material.emissive) return;
-      const base = material.userData.baseEmissive ?? new THREE.Color(0x000000);
+      const base = material.userData.currentEmissive ?? material.userData.baseEmissive ?? new THREE.Color(0x000000);
       material.emissive.copy(base);
-      if (hitFlash) material.emissive.lerp(new THREE.Color(COLORS.magenta), 0.85);
-      material.emissiveIntensity = (material.userData.baseEmissiveIntensity ?? 0) + (hitFlash ? 0.75 : 0);
+      if (hitFlash) material.emissive.lerp(new THREE.Color(COLORS.solarOrange), 0.85);
+      material.emissiveIntensity = (material.userData.currentEmissiveIntensity ?? material.userData.baseEmissiveIntensity ?? 0) + (hitFlash ? 0.75 : 0);
       material.transparent = invincible || material.userData.baseTransparent;
       material.opacity = invincible ? (flicker ? 0.42 : 0.96) : material.userData.baseOpacity;
     });
   }
 
   updateHitBox() {
-    // A simple world-space Box3 supports collision explanation without expensive mesh tests.
     this.hitBox.setFromCenterAndSize(this.group.position, new THREE.Vector3(0.82, 0.58, 1.18));
   }
 }

@@ -2,13 +2,13 @@
 
 A fast 3D tunnel runner built with Vite, Three.js, and WebGL post-processing.
 
-Race through neon lanes, dodge obstacles, chain near misses, hit rift turns, and push into Hyper Mode as the tunnel palette and speed escalate.
+Race through neon lanes, dodge obstacles, chain near misses, collect risk rings, and push into Hyper Mode as the tunnel palette and speed escalate.
 
 ## Features
 
-- Three-lane arcade runner with keyboard controls
+- Three-lane arcade runner with keyboard and touch controls
 - Bloom-lit procedural tunnel visuals
-- Rotating obstacle patterns, narrow gates, and rift-turn prompts
+- Rotating obstacle patterns, narrow gates, and risk rings
 - Shield, combo, boost, score, distance, and best-score HUD
 - Hyper Mode triggered by strong combo play, near misses, or distance
 - Local best score saved in browser storage
@@ -60,7 +60,7 @@ src/
     Player.js             Player ship model and movement
     Tunnel.js             Tunnel geometry and palette transitions
     ObstacleManager.js    Obstacle spawning and collision checks
-    ParticleManager.js    Boost, hit, rift, and near-miss effects
+    ParticleManager.js    Boost, hit, transition, and near-miss effects
     AudioManager.js       Procedural game audio
     UIManager.js          HUD, overlays, score, and status UI
     constants.js          Shared gameplay and color constants

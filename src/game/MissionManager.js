@@ -7,6 +7,15 @@ const TIER_REWARDS = {
 
 const REPLACE_DELAY = 4.2;
 const ACTIVE_MISSION_COUNT = 3;
+const MISSION_HINTS = {
+  'near-8': { focus: 'near', hint: 'GRAZE CLOSE' },
+  'timed-near-6': { focus: 'near', hint: 'CHAIN NEAR' },
+  'no-boost-300': { focus: 'noBoost', hint: 'SAVE BOOST' },
+  'hyper-pass-8': { focus: 'hyper', hint: 'PASS IN HYPER' },
+  'combo-20': { focus: 'combo', hint: 'HOLD COMBO' },
+  'no-hit-500': { focus: 'noHit', hint: 'NO HIT' },
+  'low-shield-250': { focus: 'critical', hint: 'CRITICAL RUN' },
+};
 
 const MISSION_DEFS = [
   {
@@ -62,14 +71,6 @@ const MISSION_DEFS = [
     read: (mission, stats) => Math.floor(stats.distance - mission.startDistance),
   },
   {
-    id: 'rift-streak-3',
-    label: 'Rift Streak 3',
-    tier: 'elite',
-    target: 3,
-    failOn: ['riftMiss', 'hit'],
-    read: (mission) => mission.progress.riftStreak,
-  },
-  {
     id: 'combo-20',
     label: 'Hold X20 Combo',
     tier: 'elite',
@@ -111,8 +112,6 @@ export class MissionManager {
       if (mission.status !== 'active') continue;
       if (eventName === 'nearMiss') mission.progress.nearMisses += 1;
       if (eventName === 'passed' && stats.hyperActive) mission.progress.hyperPasses += 1;
-      if (eventName === 'riftTurn') mission.progress.riftStreak += 1;
-      if (eventName === 'riftMiss' || eventName === 'hit') mission.progress.riftStreak = 0;
       if (mission.failOn.includes(eventName)) {
         events.push(this._failMission(mission));
       }
@@ -168,6 +167,8 @@ export class MissionManager {
       reward: mission.reward,
       timeLimit: mission.timeLimit,
       timeLeft: mission.timeLeft,
+      focus: mission.focus,
+      hint: mission.hint,
       complete: mission.status === 'complete',
       failed: mission.status === 'failed',
       status: mission.status,
@@ -178,6 +179,14 @@ export class MissionManager {
     let intensity = 0;
     let eliteActive = false;
     let urgent = false;
+    const focus = {
+      near: false,
+      noBoost: false,
+      hyper: false,
+      combo: false,
+      noHit: false,
+      critical: false,
+    };
 
     for (const mission of this.active) {
       if (mission.status !== 'active') continue;
@@ -186,12 +195,14 @@ export class MissionManager {
       intensity = Math.max(intensity, tierWeight + progress * tierWeight);
       eliteActive ||= mission.tier === 'elite';
       if (mission.timeLimit && mission.timeLeft <= Math.min(6, mission.timeLimit * 0.35)) urgent = true;
+      if (mission.focus && Object.prototype.hasOwnProperty.call(focus, mission.focus)) focus[mission.focus] = true;
     }
 
     return {
       intensity: Math.min(intensity, 1),
       eliteActive,
       urgent,
+      focus,
     };
   }
 
@@ -212,8 +223,10 @@ export class MissionManager {
 
   _createMission(definition, stats) {
     this.usedIds.add(definition.id);
+    const missionHint = MISSION_HINTS[definition.id] ?? { focus: null, hint: '' };
     return {
       ...definition,
+      ...missionHint,
       reward: TIER_REWARDS[definition.tier],
       value: 0,
       status: 'active',
@@ -225,7 +238,6 @@ export class MissionManager {
       progress: {
         nearMisses: 0,
         hyperPasses: 0,
-        riftStreak: 0,
         lowShieldDistance: 0,
       },
     };

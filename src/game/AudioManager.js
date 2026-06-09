@@ -4,6 +4,7 @@ export class AudioManager {
     this.masterGain = null;
     this.enabled = true;
     this.volume = 0.22;
+    this.lastPlayed = new Map();
   }
 
   async unlock() {
@@ -26,8 +27,71 @@ export class AudioManager {
     }
   }
 
+  _canPlay(type, cooldownMs) {
+    const now = performance.now();
+    const last = this.lastPlayed.get(type) || 0;
+    if (now - last < cooldownMs) return false;
+    this.lastPlayed.set(type, now);
+    return true;
+  }
+
+  playNearMiss() {
+    if (!this._canPlay('nearMiss', 100)) return;
+    void this.unlock().then(() => {
+      if (!this.context) return;
+      this._tone([980, 1320], this.context.currentTime, 0.1, 'triangle', 0.052);
+    });
+  }
+
+  playHit() {
+    if (!this._canPlay('hit', 200)) return;
+    void this.unlock().then(() => {
+      if (!this.context) return;
+      this._noiseHit(this.context.currentTime, 0.22);
+    });
+  }
+
+  playHyperReady() {
+    if (!this._canPlay('hyperReady', 1000)) return;
+    void this.unlock().then(() => {
+      if (!this.context) return;
+      this._tone([660, 990, 1320], this.context.currentTime, 0.24, 'triangle', 0.058);
+    });
+  }
+
+  playHyperStart() {
+    if (!this._canPlay('hyperStart', 2000)) return;
+    void this.unlock().then(() => {
+      if (!this.context) return;
+      this._sweep(220, 1460, this.context.currentTime, 0.62, 'sawtooth', 0.075);
+    });
+  }
+
+  playGameOver() {
+    if (!this._canPlay('gameover', 2000)) return;
+    void this.unlock().then(() => {
+      if (!this.context) return;
+      this._tone([260, 190, 120], this.context.currentTime, 0.7, 'sawtooth', 0.1);
+    });
+  }
+
+  playPass() {
+    if (!this._canPlay('pass', 50)) return;
+    void this.unlock().then(() => {
+      if (!this.context) return;
+      this._tone([620], this.context.currentTime, 0.06, 'triangle', 0.02);
+    });
+  }
+
   play(type) {
     if (!this.enabled) return;
+    if (type === 'near') return this.playNearMiss();
+    if (type === 'hit' || type === 'shieldBreak') return this.playHit();
+    if (type === 'hyperReady') return this.playHyperReady();
+    if (type === 'hyperStart') return this.playHyperStart();
+    if (type === 'gameover') return this.playGameOver();
+    if (type === 'pass') return this.playPass();
+    
     void this.unlock().then(() => {
       if (!this.context) return;
       const now = this.context.currentTime;
@@ -37,20 +101,12 @@ export class AudioManager {
         boost: () => this._sweep(180, 920, now, 0.34, 'sawtooth', 0.09),
         countdown: () => this._tone([520], now, 0.08, 'square', 0.045),
         go: () => this._tone([440, 880, 1320], now, 0.22, 'triangle', 0.07),
-        near: () => this._tone([980, 1320], now, 0.1, 'triangle', 0.052),
-        hit: () => this._noiseHit(now, 0.18),
-        shieldBreak: () => this._noiseHit(now, 0.26),
-        gameover: () => this._tone([260, 190, 120], now, 0.7, 'sawtooth', 0.1),
         combo: () => this._tone([720, 960], now, 0.12, 'triangle', 0.045),
-        pass: () => this._tone([620], now, 0.08, 'triangle', 0.028),
-        turn: () => this._sweep(360, 1240, now, 0.32, 'triangle', 0.058),
+        openingCue: () => this._tone([420, 630], now, 0.1, 'triangle', 0.026),
+        openingDodge: () => this._tone([620, 930, 1240], now, 0.16, 'triangle', 0.045),
+        hyperCharge: () => this._sweep(520, 980, now, 0.2, 'triangle', 0.038),
         warning: () => this._tone([160, 120], now, 0.18, 'sawtooth', 0.045),
-        turnWarning: () => this._tone([360, 540], now, 0.12, 'square', 0.034),
-        turnSuccess: () => this._sweep(420, 1380, now, 0.3, 'triangle', 0.052),
-        turnFail: () => this._tone([170, 120, 90], now, 0.26, 'sawtooth', 0.05),
-        tunnelTransition: () => this._sweep(260, 1040, now, 0.48, 'sawtooth', 0.038),
         zoneEnter: () => this._tone([580, 870, 1160], now, 0.18, 'triangle', 0.034),
-        hyperStart: () => this._sweep(220, 1460, now, 0.62, 'sawtooth', 0.075),
         hyperEnd: () => this._sweep(960, 260, now, 0.42, 'triangle', 0.052),
       };
       sounds[type]?.();

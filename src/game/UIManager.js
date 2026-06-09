@@ -5,8 +5,8 @@ export class UIManager {
       <canvas class="game-canvas"></canvas>
       <div class="hud hud-left">
         <div class="brand">
-          <span>NEON</span>
-          <strong>TUNNEL RUNNER</strong>
+          <span>SOLAR</span>
+          <strong>RUNNER</strong>
         </div>
         <div class="hud-block">
           <label>SCORE</label>
@@ -15,6 +15,15 @@ export class UIManager {
         <div class="hud-block">
           <label>COMBO</label>
           <output class="combo" data-ui="combo">X 0</output>
+        </div>
+        <div class="hud-block hyper-charge-block" data-ui="hyperChargeBlock">
+          <label>SOLAR CHARGE</label>
+          <div class="hyper-charge-row">
+            <div class="hyper-charge-track" data-ui="hyperChargeTrack">
+              <i data-ui="hyperChargeFill"></i>
+            </div>
+            <strong data-ui="hyperChargeValue">0%</strong>
+          </div>
         </div>
         <div class="hud-block" data-ui="shieldBlock">
           <label>SHIELD</label>
@@ -27,7 +36,7 @@ export class UIManager {
       </div>
       <div class="hud hud-right">
         <div class="hud-block">
-          <label>SPEED</label>
+          <label>VELOCITY</label>
           <output data-ui="speed">0</output>
           <small>KM/H</small>
         </div>
@@ -35,6 +44,11 @@ export class UIManager {
           <label>DISTANCE</label>
           <output data-ui="distance">0</output>
           <small>M</small>
+        </div>
+        <div class="hud-block compact flow-block">
+          <label>SECTOR</label>
+          <output data-ui="wave">ALPHA</output>
+          <small data-ui="rings">RINGS 0</small>
         </div>
         <div class="hud-block compact">
           <label>BOOST</label>
@@ -45,19 +59,23 @@ export class UIManager {
           <div class="mission-list" data-ui="missions"></div>
         </div>
       </div>
-      <div class="hyper-banner" data-ui="hyper">HYPER MODE</div>
-      <div class="zone-label" data-ui="zoneLabel">ZONE: CYBER PINK</div>
-      <div class="turn-prompt" data-ui="turnPrompt">RIFT TURN</div>
+      <div class="hyper-banner" data-ui="hyper">SOLAR SURGE</div>
+      <div class="zone-label" data-ui="zoneLabel">ZONE: SOLAR Alpha</div>
       <div class="near-miss" data-ui="nearMiss">NEAR MISS</div>
       <div class="mission-toast" data-ui="missionToast">MISSION COMPLETE</div>
       <div class="control-hint">
         <span><kbd>A</kbd><b>LEFT</b></span>
         <span><kbd>D</kbd><b>RIGHT</b></span>
-        <span><kbd>SPACE</kbd><b>BOOST</b></span>
+        <span><kbd>SPACE</kbd><b>IGNITE</b></span>
+      </div>
+      <div class="mobile-controls" data-ui="mobileControls">
+        <button type="button" data-action="left" aria-label="Move left">&#9664;</button>
+        <button type="button" class="mobile-boost" data-action="primary" aria-label="Start or boost">START</button>
+        <button type="button" data-action="right" aria-label="Move right">&#9654;</button>
       </div>
       <div class="center-panel" data-ui="panel">
-        <h1>NEON TUNNEL RUNNER</h1>
-        <p>PRESS <kbd>SPACE</kbd> TO START</p>
+        <h1>SOLAR RUNNER</h1>
+        <p>PRESS <kbd>SPACE</kbd> TO IGNITE</p>
       </div>
       <div class="hit-flash" data-ui="hitFlash"></div>
     `;
@@ -65,8 +83,14 @@ export class UIManager {
     this.canvas = root.querySelector('canvas');
     this.score = root.querySelector('[data-ui="score"]');
     this.combo = root.querySelector('[data-ui="combo"]');
+    this.hyperChargeBlock = root.querySelector('[data-ui="hyperChargeBlock"]');
+    this.hyperChargeTrack = root.querySelector('[data-ui="hyperChargeTrack"]');
+    this.hyperChargeFill = root.querySelector('[data-ui="hyperChargeFill"]');
+    this.hyperChargeValue = root.querySelector('[data-ui="hyperChargeValue"]');
     this.speed = root.querySelector('[data-ui="speed"]');
     this.distance = root.querySelector('[data-ui="distance"]');
+    this.wave = root.querySelector('[data-ui="wave"]');
+    this.rings = root.querySelector('[data-ui="rings"]');
     this.best = root.querySelector('[data-ui="best"]');
     this.boost = root.querySelector('[data-ui="boost"]');
     this.shield = root.querySelector('[data-ui="shield"]');
@@ -75,12 +99,17 @@ export class UIManager {
     this.hitFlash = root.querySelector('[data-ui="hitFlash"]');
     this.hyper = root.querySelector('[data-ui="hyper"]');
     this.zoneLabel = root.querySelector('[data-ui="zoneLabel"]');
-    this.turnPrompt = root.querySelector('[data-ui="turnPrompt"]');
     this.nearMiss = root.querySelector('[data-ui="nearMiss"]');
     this.missions = root.querySelector('[data-ui="missions"]');
     this.missionToast = root.querySelector('[data-ui="missionToast"]');
+    this.mobileControls = root.querySelector('[data-ui="mobileControls"]');
+    this.mobilePrimary = root.querySelector('[data-action="primary"]');
     this.shieldFlashTimer = null;
     this.hitFlashTimer = null;
+    this.displayCache = new Map();
+    this.missionRenderKey = '';
+    this.shieldRenderKey = '';
+    this.bestScore = this._readBestScore();
   }
 
   flashShield() {
@@ -97,7 +126,7 @@ export class UIManager {
   flashHit() {
     if (!this.hitFlash) return;
     window.clearTimeout(this.hitFlashTimer);
-    this.hitFlash.classList.remove('active');
+    this.hitFlash.classList.remove('active', 'gameover-flash');
     void this.hitFlash.offsetWidth;
     this.hitFlash.classList.add('active');
     this.hitFlashTimer = window.setTimeout(() => {
@@ -105,8 +134,23 @@ export class UIManager {
     }, 220);
   }
 
-  showNearMiss() {
+  flashGameOver() {
+    if (!this.hitFlash) return;
+    window.clearTimeout(this.hitFlashTimer);
+    this.hitFlash.classList.remove('active', 'gameover-flash');
+    void this.hitFlash.offsetWidth;
+    this.hitFlash.classList.add('active', 'gameover-flash');
+    this.hitFlashTimer = window.setTimeout(() => {
+      this.hitFlash.classList.remove('active', 'gameover-flash');
+    }, 500);
+  }
+
+  showNearMiss(chain = 1, hyperGain = 0) {
     if (!this.nearMiss) return;
+    const chainLabel = chain > 1 ? ` X${chain}` : '';
+    const chargeLabel = hyperGain > 0 ? ` +${hyperGain} SOLAR` : '';
+    this.nearMiss.textContent = `NEAR MISS${chainLabel}${chargeLabel}`;
+    this.nearMiss.dataset.chain = String(Math.min(chain, 4));
     this.nearMiss.classList.remove('active');
     void this.nearMiss.offsetWidth;
     this.nearMiss.classList.add('active');
@@ -129,8 +173,11 @@ export class UIManager {
   }
 
   setMissionFocus(visual = {}) {
-    this.root.dataset.missionElite = visual.eliteActive ? 'true' : 'false';
-    this.root.dataset.missionUrgent = visual.urgent ? 'true' : 'false';
+    this._setDataset('missionElite', visual.eliteActive);
+    this._setDataset('missionUrgent', visual.urgent);
+    this._setDataset('missionNear', visual.focus?.near);
+    this._setDataset('missionNoBoost', visual.focus?.noBoost);
+    this._setDataset('missionHyper', visual.focus?.hyper);
   }
 
   showZone(name, prefix = 'ENTERING') {
@@ -141,16 +188,7 @@ export class UIManager {
     this.zoneLabel.classList.add('active');
   }
 
-  showTurnPrompt(direction) {
-    if (!this.turnPrompt) return;
-    this.turnPrompt.textContent = direction < 0 ? '< TURN LEFT' : 'TURN RIGHT >';
-    this.turnPrompt.dataset.direction = direction < 0 ? 'left' : 'right';
-    this.turnPrompt.classList.remove('active');
-    void this.turnPrompt.offsetWidth;
-    this.turnPrompt.classList.add('active');
-  }
-
-  showTurnResult(label, warning = false) {
+  showStatus(label, warning = false) {
     if (!this.zoneLabel) return;
     this.zoneLabel.textContent = label;
     this.zoneLabel.classList.remove('active', 'warning');
@@ -167,31 +205,64 @@ export class UIManager {
   }
 
   update(stats) {
-    this.score.value = Math.floor(stats.score).toLocaleString('en-US');
-    this.combo.value = `X ${stats.combo}`;
-    this.speed.value = Math.floor(stats.speed * 7.2).toLocaleString('en-US');
-    this.distance.value = Math.floor(stats.distance).toLocaleString('en-US');
-    this.best.value = this._readBestScore().toLocaleString('en-US');
-    this.boost.value = stats.boostReady ? 'READY' : `${Math.ceil(stats.boostCooldown * 10) / 10}s`;
-    this.hyper.classList.toggle('active', Boolean(stats.hyperActive));
-    this.root.dataset.hyper = stats.hyperActive ? 'true' : 'false';
+    this._setOutput('score', this.score, Math.floor(stats.score).toLocaleString('en-US'));
+    this._setOutput('combo', this.combo, `X ${stats.combo}`);
+    this._setOutput('speed', this.speed, Math.floor(stats.speed * 7.2).toLocaleString('en-US'));
+    this._setOutput('distance', this.distance, Math.floor(stats.distance).toLocaleString('en-US'));
+    this._setOutput('wave', this.wave, this._formatWave(stats.wave));
+    this._setText('rings', this.rings, `RINGS ${stats.scoreRings ?? 0}`);
+    this._setOutput('best', this.best, this.bestScore.toLocaleString('en-US'));
+    this._setOutput(
+      'boost',
+      this.boost,
+      stats.missionVisual?.focus?.noBoost ? 'HOLD' : stats.boostReady ? 'READY' : `${Math.ceil(stats.boostCooldown * 10) / 10}s`,
+    );
+    this._renderHyper(stats);
+    this._setDataset('hyper', stats.hyperActive);
+    this._setDataset('hyperReady', stats.hyperReady);
     this._renderMissions(stats.missions || []);
-    this.shield.innerHTML = '';
-    for (let i = 0; i < stats.maxShield; i += 1) {
-      const item = document.createElement('i');
-      item.className = i < stats.shield ? 'active' : '';
-      this.shield.appendChild(item);
+    this._renderShield(stats.shield, stats.maxShield);
+  }
+
+  _renderHyper(stats) {
+    const maxCharge = 100;
+    const charge = Math.max(0, Math.min(maxCharge, stats.hyperCharge ?? 0));
+    const roundedCharge = Math.round(charge);
+    const displayCharge = stats.hyperActive ? maxCharge : roundedCharge;
+    const chargeText = stats.hyperActive
+      ? `SURGE ${Math.max(0, stats.hyperTime ?? 0).toFixed(1)}s`
+      : stats.hyperReady
+        ? 'READY'
+        : `${roundedCharge}%`;
+    const bannerText = stats.hyperActive
+      ? `SOLAR SURGE ${Math.max(0, stats.hyperTime ?? 0).toFixed(1)}s`
+      : 'SOLAR READY';
+
+    this._setText('hyperChargeValue', this.hyperChargeValue, chargeText);
+    this._setText('hyperBannerText', this.hyper, bannerText);
+    if (this.hyperChargeFill && this.displayCache.get('hyperChargeFill') !== displayCharge) {
+      this.displayCache.set('hyperChargeFill', displayCharge);
+      this.hyperChargeFill.style.transform = `scaleX(${displayCharge / maxCharge})`;
     }
+    this._setClass('hyperChargeHigh', this.hyperChargeBlock, 'high', !stats.hyperActive && charge >= 70);
+    this._setClass('hyperChargeReady', this.hyperChargeBlock, 'ready', Boolean(stats.hyperReady));
+    this._setClass('hyperChargeActive', this.hyperChargeBlock, 'active', Boolean(stats.hyperActive));
+    this._setClass('hyperBannerActive', this.hyper, 'active', Boolean(stats.hyperActive || stats.hyperReady));
+    this._setClass('hyperBannerReady', this.hyper, 'ready', Boolean(stats.hyperReady));
   }
 
   setState(state, stats) {
     this.root.dataset.state = state;
+    if (this.mobilePrimary) {
+      this.mobilePrimary.textContent = state === 'playing' ? 'BOOST' : state === 'countdown' ? 'READY' : 'START';
+      this.mobilePrimary.disabled = state === 'countdown' || state === 'crashing';
+    }
     if (state === 'ready') {
       this.panel.innerHTML = `
-        <h1>NEON TUNNEL RUNNER</h1>
+        <h1>SOLAR RUNNER</h1>
         <p><kbd>A</kbd> / <kbd>D</kbd> OR ARROWS : MOVE</p>
-        <p><kbd>SPACE</kbd> : START / BOOST</p>
-        <p>AVOID OBSTACLES. BUILD COMBO. ENTER HYPER MODE.</p>
+        <p><kbd>SPACE</kbd> : IGNITE / BOOST</p>
+        <p>AVOID DEVICES. BUILD COMBO. TRIGGER SOLAR SURGE.</p>
       `;
     }
     if (state === 'playing') {
@@ -199,8 +270,8 @@ export class UIManager {
     }
     if (state === 'paused') {
       this.panel.innerHTML = `
-        <h1>PAUSED</h1>
-        <p>PRESS <kbd>P</kbd> OR <kbd>ESC</kbd> TO RESUME</p>
+        <h1>BURNOUT</h1>
+        <p>PRESS <kbd>P</kbd> OR <kbd>ESC</kbd> TO IGNITE</p>
       `;
     }
     if (state === 'countdown') {
@@ -212,14 +283,18 @@ export class UIManager {
       const previousBest = this._readBestScore();
       const newBest = score > previousBest;
       const bestScore = newBest ? score : previousBest;
-      if (newBest) this._writeBestScore(score);
+      if (newBest) {
+        this._writeBestScore(score);
+        this.bestScore = score;
+        this.displayCache.delete('best');
+      }
       const rank = this._rankFor(score);
       const nextRank = this._nextRankFor(score);
       const rankClass = rank === 'S' || rank === 'S+' ? 'elite' : '';
       const completedMissions = stats.completedMissions ?? (stats.missions || []).filter((mission) => mission.complete).length;
       this.panel.innerHTML = `
-        <h1>GAME OVER</h1>
-        ${newBest ? '<p class="new-best">NEW BEST!</p>' : ''}
+        <h1>SYSTEM FAILURE</h1>
+        ${newBest ? '<p class="new-best">RECORD BROKEN!</p>' : ''}
         <div class="result-grid">
           <span>FINAL SCORE</span><strong>${score.toLocaleString('en-US')}</strong>
           <span>DISTANCE</span><strong>${distance.toLocaleString('en-US')}M</strong>
@@ -227,26 +302,39 @@ export class UIManager {
           <span>RANK</span><strong class="rank ${rankClass}">${rank}</strong>
           <span>MAX COMBO</span><strong>X ${stats.maxCombo}</strong>
           <span>NEAR MISS</span><strong>${stats.nearMisses}</strong>
-          <span>HYPER</span><strong>${stats.hyperCount}</strong>
+          <span>SURGE COUNT</span><strong>${stats.hyperCount}</strong>
+          <span>RECOVERY</span><strong>${stats.scoreRings ?? 0}</strong>
           <span>MISSIONS</span><strong>${completedMissions} DONE</strong>
         </div>
         ${nextRank ? `<p class="next-rank">${nextRank.remaining.toLocaleString('en-US')} POINTS TO RANK ${nextRank.rank}</p>` : '<p class="next-rank">MAX RANK REACHED</p>'}
-        <p>PRESS <kbd>SPACE</kbd> TO RESTART</p>
+        <p>PRESS <kbd>SPACE</kbd> TO REBOOT</p>
       `;
     }
   }
 
   _renderMissions(missions) {
     if (!this.missions) return;
+    const renderKey = missions
+      .map((mission) => [
+        mission.id,
+        mission.value,
+        mission.target,
+        mission.status,
+        mission.timeLeft == null ? '' : Math.ceil(mission.timeLeft),
+        mission.hint,
+      ].join(':'))
+      .join('|');
+    if (renderKey === this.missionRenderKey) return;
+    this.missionRenderKey = renderKey;
     this.missions.innerHTML = missions
       .map((mission) => {
         const progress = mission.target > 0 ? Math.max(0, Math.min(100, Math.round((mission.value / mission.target) * 100))) : 0;
         const timeText = mission.timeLeft != null ? `<em>${Math.ceil(mission.timeLeft)}s</em>` : '';
-        const statusText = mission.failed ? 'FAILED' : mission.complete ? 'DONE' : `+${mission.reward}`;
+        const statusText = mission.failed ? 'FAILED' : mission.complete ? 'DONE' : mission.hint || `+${mission.reward}`;
         const timeLimitUrgent = mission.timeLimit && mission.timeLeft <= Math.min(6, mission.timeLimit * 0.35);
         const statusClass = `${mission.failed ? 'failed' : mission.complete ? 'complete' : mission.tier} ${timeLimitUrgent ? 'urgent' : ''}`;
         return `
-          <div class="mission-item ${statusClass}" data-tier="${mission.tier}">
+          <div class="mission-item ${statusClass}" data-tier="${mission.tier}" data-focus="${mission.focus || 'score'}">
             <span>
               <b>${mission.tier}</b>
               ${mission.label}
@@ -258,6 +346,51 @@ export class UIManager {
         `;
       })
       .join('');
+  }
+
+  _renderShield(shield, maxShield) {
+    const renderKey = `${shield}:${maxShield}`;
+    if (!this.shield || renderKey === this.shieldRenderKey) return;
+    this.shieldRenderKey = renderKey;
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < maxShield; i += 1) {
+      const item = document.createElement('i');
+      item.className = i < shield ? 'active' : '';
+      fragment.appendChild(item);
+    }
+    this.shield.replaceChildren(fragment);
+  }
+
+  _setOutput(key, element, value) {
+    if (!element || this.displayCache.get(key) === value) return;
+    this.displayCache.set(key, value);
+    element.value = value;
+  }
+
+  _setText(key, element, value) {
+    if (!element || this.displayCache.get(key) === value) return;
+    this.displayCache.set(key, value);
+    element.textContent = value;
+  }
+
+  _setClass(key, element, className, active) {
+    const value = Boolean(active);
+    if (!element || this.displayCache.get(key) === value) return;
+    this.displayCache.set(key, value);
+    element.classList.toggle(className, value);
+  }
+
+  _setDataset(key, active) {
+    const cacheKey = `dataset:${key}`;
+    const value = active ? 'true' : 'false';
+    if (this.displayCache.get(cacheKey) === value) return;
+    this.displayCache.set(cacheKey, value);
+    this.root.dataset[key] = value;
+  }
+
+  _formatWave(wave = null) {
+    if (!wave?.name) return 'WARMUP';
+    return wave.name.toUpperCase();
   }
 
   _rankFor(score) {

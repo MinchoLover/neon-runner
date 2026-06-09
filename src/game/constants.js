@@ -2,83 +2,133 @@ export const LANE_COUNT = 3;
 export const LANE_X = [-3, 0, 3];
 export const START_LANE_INDEX = 1;
 export const PLAYER_HIT_Z_RANGE = 0.72;
+export const NEAR_MISS_Z_WINDOW = 1.6;
+export const NEAR_MISS_TIME_WINDOW = 0.55;
+export const NEAR_MISS_DANGER_DISTANCE = 12;
+
+export const OPENING_SEQUENCE_DURATION = 10;
+export const OPENING_MIN_SAFE_GAP = 0.35;
+export const OPENING_TRANSITION_DURATION = 5;
+export const OPENING_TRANSITION_SPAWN_Z = -24;
+export const OPENING_PATTERNS = [
+  {
+    id: 'move',
+    triggerTime: 0.55,
+    cueTime: 0.2,
+    type: 'easyGate',
+    blockedLanes: [1],
+    targetArrivalTime: 3.8,
+    tutorialText: 'MOVE: A / D',
+  },
+  {
+    id: 'open-gate',
+    triggerTime: 2.15,
+    cueTime: 4.35,
+    type: 'securityGate',
+    openLane: 1,
+    targetArrivalTime: 5.55,
+    tutorialText: 'DODGE THE GATES',
+  },
+  {
+    id: 'near-miss',
+    triggerTime: 4.25,
+    cueTime: 6.15,
+    type: 'nearMissOpportunity',
+    blockedLanes: [1],
+    targetArrivalTime: 7.25,
+    tutorialText: 'LATE DODGE = NEAR MISS',
+    isNearMissOpportunity: true,
+  },
+  {
+    id: 'hyper-charge',
+    triggerTime: 6.25,
+    cueTime: 8.15,
+    type: 'hyperChargeGate',
+    openLane: 1,
+    targetArrivalTime: 9.35,
+    tutorialText: 'NEAR MISS BUILDS HYPER',
+  },
+];
 
 export const COLORS = {
   cyan: 0x00e5ff,
+  solarGold: 0xffb700,
+  solarOrange: 0xff6200,
+  amber: 0xff8c00,
   magenta: 0xff31f7,
   purple: 0x8a35ff,
-  blue: 0x3c7bff,
-  white: 0xeaf7ff,
-  dark: 0x03010c,
+  blue: 0x0055ff,
+  white: 0xffffff,
+  dark: 0x020308,
 };
 
 export const TUNNEL_PALETTES = [
   {
-    name: 'CYBER PINK',
-    primary: 0x00f5ff,
-    secondary: 0xff2bd6,
-    accent: 0x8b5cff,
-    obstacle: 0xff31f7,
+    name: 'SOLAR SECTOR Alpha',
+    primary: 0x00e5ff,
+    secondary: 0xffb700,
+    accent: 0xff6200,
+    obstacle: 0xffb700,
     light: 0x00e5ff,
-    fog: 0x04000f,
-    background: 0x03010c,
+    fog: 0x010206,
+    background: 0x020308,
     bias: 'balanced',
   },
   {
-    name: 'VOID ORANGE',
-    primary: 0x8b5cff,
-    secondary: 0xff8a00,
+    name: 'SOLAR SECTOR Beta',
+    primary: 0xffb700,
+    secondary: 0xff6200,
     accent: 0xffffff,
-    obstacle: 0xff8a00,
-    light: 0xff8a00,
-    fog: 0x100408,
-    background: 0x05020b,
+    obstacle: 0xff6200,
+    light: 0xffb700,
+    fog: 0x030201,
+    background: 0x040301,
     bias: 'bar',
   },
   {
-    name: 'BLUE GRID',
-    primary: 0x3c7bff,
-    secondary: 0x18ff9e,
-    accent: 0x00e5ff,
-    obstacle: 0x18ff9e,
-    light: 0x3c7bff,
-    fog: 0x020814,
-    background: 0x010511,
+    name: 'MAGNETIC GRID',
+    primary: 0x0055ff,
+    secondary: 0x00e5ff,
+    accent: 0xffb700,
+    obstacle: 0x00e5ff,
+    light: 0x0055ff,
+    fog: 0x010208,
+    background: 0x02030a,
     bias: 'gate',
   },
   {
-    name: 'RED CORE',
-    primary: 0xff274f,
-    secondary: 0x8a35ff,
+    name: 'REACTOR CORE',
+    primary: 0xff6200,
+    secondary: 0xff2700,
     accent: 0xffffff,
-    obstacle: 0xff274f,
-    light: 0xff274f,
-    fog: 0x140208,
-    background: 0x070106,
+    obstacle: 0xff6200,
+    light: 0xff6200,
+    fog: 0x080101,
+    background: 0x0a0101,
     bias: 'fast',
   },
   {
-    name: 'ELECTRIC WHITE',
-    primary: 0xeaf7ff,
-    secondary: 0x00a6ff,
-    accent: 0x00f5ff,
-    obstacle: 0x00a6ff,
-    light: 0xeaf7ff,
-    fog: 0x050914,
-    background: 0x02040b,
+    name: 'PLASMA WHITE',
+    primary: 0xffffff,
+    secondary: 0x00e5ff,
+    accent: 0xffb700,
+    obstacle: 0x00e5ff,
+    light: 0xffffff,
+    fog: 0x020305,
+    background: 0x030408,
     bias: 'balanced',
   },
 ];
 
 export const HYPER_PALETTE = {
-  name: 'HYPER RIFT',
-  primary: 0xff274f,
-  secondary: 0x8a35ff,
+  name: 'SOLAR SURGE',
+  primary: 0xffffff,
+  secondary: 0xffb700,
   accent: 0xffffff,
   obstacle: 0xffffff,
-  light: 0xff31f7,
-  fog: 0x100018,
-  background: 0x050006,
+  light: 0xffb700,
+  fog: 0x060200,
+  background: 0x080300,
   bias: 'hyper',
 };
 
@@ -95,8 +145,15 @@ export const GAME = {
   removeZ: 9,
   shield: 3,
   hyperDuration: 10,
-  hyperCombo: 10,
-  turnGateInterval: 4,
+  hyperChargeMax: 100,
+  hyperNearMissGain: 25,
+  hyperPassGain: 3,
+  hyperComboMilestone: 5,
+  hyperComboMilestoneGain: 5,
+  hyperRingGain: 6,
+  hyperHitLoss: 35,
+  hyperReadyDelay: 0.65,
+  openingPassChargeGain: 10,
 };
 
 export function getWrappedLaneIndex(index) {
@@ -114,3 +171,18 @@ export function getLanePosition(laneIndex, z = GAME.playerZ) {
     z,
   };
 }
+
+// Feedback / Game Feel Tuning Constants
+export const NEAR_MISS_FEEDBACK_DURATION = 0.35;
+export const HYPER_READY_PULSE_DURATION = 0.8;
+export const HYPER_START_FOV_PULSE = 0.4;
+export const HITSTOP_DURATION = 0.06;
+export const HITSTOP_COOLDOWN = 0.5;
+export const HIT_SHAKE_INTENSITY = 0.2;
+export const GAME_OVER_SHAKE_INTENSITY = 0.6;
+export const NEAR_MISS_SHAKE_INTENSITY = 0.04;
+export const HYPER_SHAKE_INTENSITY = 0.15;
+export const AUDIO_EVENT_COOLDOWN = 0.1;
+export const SOLAR_CORE_BASE_INTENSITY = 0.6;
+export const SOLAR_CORE_SURGE_INTENSITY = 1.2;
+
