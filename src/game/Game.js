@@ -111,6 +111,7 @@ export class Game {
 
     this._setupScene();
     this._setupWorld();
+    this.ui.setCompactMode(this._isCompactViewport());
     this._resize();
     this._bindEvents();
     this.ui.update(this.stats);
@@ -167,6 +168,7 @@ export class Game {
     rgbShiftPass.uniforms.amount.value = 0;
     this.composer.addPass(rgbShiftPass);
     this.ssaoPass = ssaoPass;
+    this.ssaoPass.enabled = !this._isCompactViewport();
     this.rgbShiftPass = rgbShiftPass;
     this.bloomPass = bloomPass;
     this.baseBloomStrength = bloomPass.strength;
@@ -1257,6 +1259,8 @@ export class Game {
     this.composer.setSize(width, height);
     this.ssaoPass?.setSize(width, height);
     this.bloomPass.setSize(width, height);
+    if (this.ssaoPass) this.ssaoPass.enabled = !compact;
+    this.ui?.setCompactMode(compact);
     this.player?.setDeviceScale(compact ? 0.84 : 1);
   }
 

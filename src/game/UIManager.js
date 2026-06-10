@@ -147,7 +147,17 @@ export class UIManager {
     this.displayCache = new Map();
     this.missionRenderKey = '';
     this.shieldRenderKey = '';
+    this.isCompactMode = false;
     this.bestScore = this._readBestScore();
+  }
+
+  setCompactMode(active) {
+    const next = Boolean(active);
+    if (this.isCompactMode === next) return;
+    this.isCompactMode = next;
+    this.root.dataset.compact = next ? 'true' : 'false';
+    this.missionRenderKey = '';
+    this.missions?.replaceChildren();
   }
 
   flashShield() {
@@ -290,7 +300,14 @@ export class UIManager {
     this._renderHyper(stats);
     this._setDataset('hyper', stats.hyperActive);
     this._setDataset('hyperReady', stats.hyperReady);
-    this._renderMissions(stats.missions || []);
+    if (this.isCompactMode) {
+      if (this.missions && this.missionRenderKey !== '__compact__') {
+        this.missionRenderKey = '__compact__';
+        this.missions.replaceChildren();
+      }
+    } else {
+      this._renderMissions(stats.missions || []);
+    }
     this._renderShield(stats.shield, stats.maxShield);
   }
 

@@ -198,6 +198,10 @@ body {
   padding-bottom: 12px;
 }
 
+[data-compact="true"] .mission-block {
+  display: none !important;
+}
+
 [data-mission-elite="true"] .mission-block {
   border-color: rgba(255, 255, 255, 0.72);
   box-shadow:
