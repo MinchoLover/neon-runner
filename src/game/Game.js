@@ -654,7 +654,8 @@ export class Game {
     }
     const boostFactor = this.boostTimer > 0 ? 1 : 0;
     const hyperFactor = this.stats.hyperActive ? 1 : 0;
-    const baseSpeed = Math.min(GAME.startSpeed + this.elapsed * 0.55, GAME.maxSpeed);
+    const speedRamp = this._isCompactViewport() ? 0.68 : 0.55;
+    const baseSpeed = Math.min(GAME.startSpeed + this.elapsed * speedRamp, GAME.maxSpeed);
     this.stats.speed = baseSpeed + boostFactor * GAME.boostSpeed + hyperFactor * 4;
     this.stats.distance += this.stats.speed * delta * 1.35;
     const multiplier = this.stats.hyperActive ? 2 : 1;
@@ -1256,7 +1257,7 @@ export class Game {
     this.composer.setSize(width, height);
     this.ssaoPass?.setSize(width, height);
     this.bloomPass.setSize(width, height);
-    this.player?.setDeviceScale(compact ? 0.9 : 1);
+    this.player?.setDeviceScale(compact ? 0.84 : 1);
   }
 
   _isCompactViewport() {

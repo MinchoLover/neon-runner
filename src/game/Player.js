@@ -69,7 +69,7 @@ export class Player {
   }
 
   setDeviceScale(scale = 1) {
-    const nextScale = THREE.MathUtils.clamp(scale, 0.8, 1.1);
+    const nextScale = THREE.MathUtils.clamp(scale, 0.75, 1.1);
     if (this.deviceScale === nextScale) return;
     this.deviceScale = nextScale;
     this.group.scale.setScalar(nextScale);

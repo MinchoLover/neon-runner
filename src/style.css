@@ -2295,3 +2295,9 @@ kbd {
     display: none;
   }
 }
+
+@media (hover: none) and (pointer: coarse) {
+  .mission-block {
+    display: none !important;
+  }
+}
