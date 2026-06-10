@@ -16,6 +16,7 @@ import {
   PLAYER_HIT_Z_RANGE,
   SOLAR_CORE,
   SOLAR_CORE_PATTERNS,
+  SHIELD_PICKUP,
   TUNNEL_PALETTES,
   getLaneAngle,
   getLanePosition,
@@ -46,10 +47,12 @@ export class ObstacleManager {
     this.scene = scene;
     this.obstacles = [];
     this.solarCores = [];
+    this.shieldPickups = [];
     this.spawnTimer = 0;
     this.patternIndex = 0;
     this.solarCorePatternIndex = 0;
     this.nextSolarCoreTime = SOLAR_CORE_PATTERNS[0].minElapsed;
+    this.nextShieldPickupTime = 16;
     this.nextSpawnDelay = null;
     this.currentWave = 'warmup';
     this.openingSpawnedIds = new Set();
@@ -276,12 +279,15 @@ export class ObstacleManager {
   reset() {
     for (const item of this.obstacles) this._removeObstacle(item);
     for (const item of this.solarCores) this._removeSolarCore(item);
+    for (const item of this.shieldPickups) this._removeShieldPickup(item);
     this.obstacles = [];
     this.solarCores = [];
+    this.shieldPickups = [];
     this.spawnTimer = OPENING_MIN_SAFE_GAP;
     this.patternIndex = 0;
     this.solarCorePatternIndex = 0;
     this.nextSolarCoreTime = SOLAR_CORE_PATTERNS[0].minElapsed;
+    this.nextShieldPickupTime = 16;
     this.nextSpawnDelay = null;
     this.currentWave = 'warmup';
     this.openingSpawnedIds.clear();
@@ -390,6 +396,7 @@ export class ObstacleManager {
     }
 
     this._updateSolarCores(delta, speed, callbacks);
+    this._updateShieldPickups(delta, speed, elapsed, callbacks);
   }
 
   _updateOpeningSequence(elapsed, callbacks) {
@@ -509,6 +516,53 @@ export class ObstacleManager {
     }
   }
 
+  _updateShieldPickups(delta, speed, elapsed, callbacks) {
+    for (let i = this.shieldPickups.length - 1; i >= 0; i -= 1) {
+      const pickup = this.shieldPickups[i];
+      pickup.group.position.z += speed * delta;
+      pickup.group.rotation.y += pickup.spinSpeed * delta;
+      pickup.ring.rotation.z += pickup.spinSpeed * 0.5 * delta;
+      pickup.halo.rotation.y += pickup.spinSpeed * 0.25 * delta;
+      const pulse = 1 + Math.sin(performance.now() * 0.014 + pickup.phase) * 0.08;
+      pickup.glow.scale.setScalar(pulse);
+      pickup.core.scale.setScalar(0.92 + pulse * 0.1);
+      pickup.materials[0].opacity = 0.76 + (pulse - 1) * 0.5;
+      pickup.materials[1].opacity = 0.5 + (pulse - 1) * 0.7;
+      pickup.materials[2].opacity = 0.9;
+
+      const closeZ = Math.abs(pickup.group.position.z - GAME.playerZ) < SHIELD_PICKUP.collectZRange;
+      const sameLane = callbacks.playerLane === pickup.lane;
+      const closeX = Math.abs(callbacks.playerX - LANE_X[pickup.lane]) < SHIELD_PICKUP.collectXRange;
+      if (!pickup.collected && sameLane && closeZ && closeX) {
+        pickup.collected = true;
+        pickup.group.userData.collected = true;
+        callbacks.onShieldPickup?.(pickup.group.position.clone(), pickup);
+        this._removeShieldPickup(pickup);
+        this.shieldPickups.splice(i, 1);
+        continue;
+      }
+
+      if (pickup.group.position.z > GAME.removeZ) {
+        this._removeShieldPickup(pickup);
+        this.shieldPickups.splice(i, 1);
+      }
+    }
+
+    if (
+      !callbacks.shieldMissing ||
+      elapsed < this.nextShieldPickupTime ||
+      this.shieldPickups.length >= SHIELD_PICKUP.maxActive
+    ) {
+      return;
+    }
+
+    if (this._maybeSpawnShieldPickup(elapsed, callbacks)) {
+      this.nextShieldPickupTime = elapsed + 11 + Math.random() * 7;
+    } else {
+      this.nextShieldPickupTime = elapsed + 1.2;
+    }
+  }
+
 
   _maybeSpawnSolarCorePattern(elapsed, spawnZ, callbacks) {
     if (elapsed < this.nextSolarCoreTime || this.solarCores.length >= SOLAR_CORE.maxActive) return false;
@@ -560,6 +614,85 @@ export class ObstacleManager {
     this._createSolarCore(coreLane, coreZ, pattern);
     this.lastSafeLane = pattern.type === 'riskCore' ? playerLane : coreLane;
     return true;
+  }
+
+  _maybeSpawnShieldPickup(elapsed, callbacks) {
+    const spawnZ = this._normalSpawnZ(elapsed);
+    const lanes = [0, 1, 2].filter((lane) => this._canPlaceShieldPickup(lane, spawnZ));
+    if (!lanes.length) return false;
+
+    const preferredLane = callbacks.playerLane ?? 1;
+    const lane = lanes.includes(preferredLane)
+      ? preferredLane
+      : lanes[Math.floor(Math.random() * lanes.length)];
+
+    this._createShieldPickup(lane, spawnZ - 6.5);
+    return true;
+  }
+
+  _canPlaceShieldPickup(lane, z) {
+    const obstacleConflict = this.obstacles.some(
+      (obstacle) => obstacle.blockedLanes.includes(lane) && Math.abs(obstacle.group.position.z - z) < SHIELD_PICKUP.minObstacleGap,
+    );
+    if (obstacleConflict) return false;
+
+    const coreConflict = this.solarCores.some(
+      (core) => core.lane === lane && Math.abs(core.group.position.z - z) < SHIELD_PICKUP.minObstacleGap * 1.2,
+    );
+    if (coreConflict) return false;
+
+    return this.shieldPickups.every(
+      (pickup) => pickup.lane !== lane || Math.abs(pickup.group.position.z - z) >= SHIELD_PICKUP.minObstacleGap * 1.5,
+    );
+  }
+
+  _createShieldPickup(lane, z) {
+    const group = new THREE.Group();
+    const whiteMaterial = this.solarCoreWhiteMaterial.clone();
+    const cyanMaterial = this.solarCoreCyanMaterial.clone();
+    const goldMaterial = this.solarCoreGoldMaterial.clone();
+
+    const position = getLanePosition(lane, z);
+    group.position.set(position.x, position.y + 0.44, position.z);
+    group.rotation.z = getLaneAngle(lane);
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.04, 8, 32), cyanMaterial);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 12), goldMaterial);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), whiteMaterial);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.018, 8, 36), cyanMaterial);
+    halo.rotation.x = Math.PI / 2;
+
+    group.add(glow, ring, halo, core);
+
+    group.userData = {
+      type: 'shieldPickup',
+      kind: 'shieldPickup',
+      laneIndex: lane,
+      collected: false,
+      blockedLanes: [],
+      counted: false,
+      hit: false,
+    };
+
+    this.scene.add(group);
+    this.shieldPickups.push({
+      type: 'shieldPickup',
+      group,
+      lane,
+      ring,
+      glow,
+      core,
+      halo,
+      materials: [whiteMaterial, cyanMaterial, goldMaterial],
+      spinSpeed: 1.6 + Math.random() * 0.6,
+      phase: Math.random() * Math.PI * 2,
+      collected: false,
+    });
+  }
+
+  _removeShieldPickup(pickup) {
+    this.scene.remove(pickup.group);
+    this._disposeGroupResources(pickup.group);
   }
 
   _adjacentLanes(lane) {

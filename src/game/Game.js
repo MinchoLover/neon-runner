@@ -6,9 +6,9 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { RGBShiftShader } from 'three/examples/jsm/shaders/RGBShiftShader.js';
 import { AudioManager } from './AudioManager.js';
-import { 
-  COLORS, 
-  GAME, 
+import {
+  COLORS,
+  GAME,
   TUNNEL_PALETTES,
   NEAR_MISS_FEEDBACK_DURATION,
   HYPER_READY_PULSE_DURATION,
@@ -19,7 +19,8 @@ import {
   GAME_OVER_SHAKE_INTENSITY,
   NEAR_MISS_SHAKE_INTENSITY,
   HYPER_SHAKE_INTENSITY,
-  AUDIO_EVENT_COOLDOWN
+  AUDIO_EVENT_COOLDOWN,
+  SHIELD_PICKUP,
 } from './constants.js';
 import { MissionManager } from './MissionManager.js';
 import { ObstacleManager } from './ObstacleManager.js';
@@ -693,6 +694,7 @@ export class Game {
       playerLane: this.player.lane,
       laneChange: this.lastLaneChange,
       surgeActive: this.stats.hyperActive,
+      shieldMissing: this.stats.shield < this.stats.maxShield,
       onPattern: (safeLane) => this._handlePatternCue(safeLane),
       onOpeningCue: (pattern) => this._handleOpeningCue(pattern),
       onWaveChange: (wave) => this._handleWaveChange(wave),
@@ -701,6 +703,7 @@ export class Game {
       onPassed: (obstacle) => this._handlePassed(obstacle),
       onNearMiss: (position) => this._handleNearMiss(position),
       onSolarCore: (position, core) => this._handleSolarCore(position, core),
+      onShieldPickup: (position, pickup) => this._handleShieldPickup(position, pickup),
       onSolarCoreCue: (pattern) => this._handleSolarCoreCue(pattern),
     });
 
@@ -804,6 +807,21 @@ export class Game {
     this.ui.showSolarCore(reward, chargeGain, core.riskLevel, this.stats.hyperReady);
     this.particles.solarCore(position, core.riskLevel === 'safe' ? 22 : 30, this.player.group.position);
     this.audio.play('solarCore');
+  }
+
+  _handleShieldPickup(position, pickup) {
+    if (this.stats.shield >= this.stats.maxShield) return;
+
+    this.stats.shield = Math.min(this.stats.shield + 1, this.stats.maxShield);
+    this.stats.score += SHIELD_PICKUP.scoreGain;
+    this.startPulseTimer = Math.max(this.startPulseTimer, 0.12);
+    this.solarCorePulseTimer = Math.max(this.solarCorePulseTimer, 0.16);
+    this.shake = Math.max(this.shake, 0.04);
+    this.ui.flashShield();
+    this.ui.showStatus('SHIELD RESTORED');
+    this.particles.solarCore(position, 14, this.player.group.position);
+    this.audio.play('solarCore');
+    this.ui.update(this.stats);
   }
 
   _handleSurgeBreak(position, obstacle) {

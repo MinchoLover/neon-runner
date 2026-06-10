@@ -195,7 +195,7 @@ export const GAME = {
   playerY: -2.15,
   spawnZ: -104,
   removeZ: 9,
-  shield: 3,
+  shield: 4,
   hyperDuration: 9.5,
   hyperChargeMax: 100,
   hyperNearMissGain: 16,
@@ -207,6 +207,15 @@ export const GAME = {
   openingPassChargeGain: 12,
   surgeBreakScore: 650,
   surgeBreakComboGain: 2,
+};
+
+export const SHIELD_PICKUP = {
+  chargeGain: 18,
+  scoreGain: 220,
+  collectZRange: 1.15,
+  collectXRange: 0.95,
+  minObstacleGap: 6,
+  maxActive: 1,
 };
 
 export function getWrappedLaneIndex(index) {
