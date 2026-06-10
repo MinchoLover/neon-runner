@@ -694,7 +694,6 @@ export class Game {
       playerLane: this.player.lane,
       laneChange: this.lastLaneChange,
       surgeActive: this.stats.hyperActive,
-      shieldMissing: this.stats.shield < this.stats.maxShield,
       onPattern: (safeLane) => this._handlePatternCue(safeLane),
       onOpeningCue: (pattern) => this._handleOpeningCue(pattern),
       onWaveChange: (wave) => this._handleWaveChange(wave),

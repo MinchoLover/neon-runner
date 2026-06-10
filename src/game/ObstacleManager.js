@@ -549,7 +549,6 @@ export class ObstacleManager {
     }
 
     if (
-      !callbacks.shieldMissing ||
       elapsed < this.nextShieldPickupTime ||
       this.shieldPickups.length >= SHIELD_PICKUP.maxActive
     ) {
@@ -626,7 +625,7 @@ export class ObstacleManager {
       ? preferredLane
       : lanes[Math.floor(Math.random() * lanes.length)];
 
-    this._createShieldPickup(lane, spawnZ - 6.5);
+    this._createShieldPickup(lane, spawnZ - 4.5);
     return true;
   }
 
@@ -652,17 +651,30 @@ export class ObstacleManager {
     const cyanMaterial = this.solarCoreCyanMaterial.clone();
     const goldMaterial = this.solarCoreGoldMaterial.clone();
 
-    const position = getLanePosition(lane, z);
-    group.position.set(position.x, position.y + 0.44, position.z);
-    group.rotation.z = getLaneAngle(lane);
+    for (const material of [whiteMaterial, cyanMaterial, goldMaterial]) {
+      material.transparent = true;
+      material.depthWrite = false;
+      material.blending = THREE.AdditiveBlending;
+      material.toneMapped = false;
+    }
 
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.04, 8, 32), cyanMaterial);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 12), goldMaterial);
-    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), whiteMaterial);
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.018, 8, 36), cyanMaterial);
+    const position = getLanePosition(lane, z);
+    group.position.set(position.x, position.y + 0.62, position.z);
+    group.rotation.z = getLaneAngle(lane);
+    group.scale.setScalar(1.4);
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 8, 36), cyanMaterial);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.4, 18, 12), goldMaterial);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), whiteMaterial);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.022, 8, 40), cyanMaterial);
     halo.rotation.x = Math.PI / 2;
 
     group.add(glow, ring, halo, core);
+    group.renderOrder = 2;
+    glow.renderOrder = 2;
+    ring.renderOrder = 2;
+    halo.renderOrder = 2;
+    core.renderOrder = 3;
 
     group.userData = {
       type: 'shieldPickup',
@@ -684,7 +696,7 @@ export class ObstacleManager {
       core,
       halo,
       materials: [whiteMaterial, cyanMaterial, goldMaterial],
-      spinSpeed: 1.6 + Math.random() * 0.6,
+      spinSpeed: 1.8 + Math.random() * 0.7,
       phase: Math.random() * Math.PI * 2,
       collected: false,
     });
