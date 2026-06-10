@@ -5,8 +5,8 @@ export class UIManager {
       <canvas class="game-canvas"></canvas>
       <div class="hud hud-left">
         <div class="brand">
-          <span>SOLAR</span>
-          <strong>RUNNER</strong>
+          <div><span>SOLAR</span><strong>RUNNER</strong></div>
+          <small>OVERDRIVE PROTOCOL</small>
         </div>
         <div class="hud-block">
           <label>SCORE</label>
@@ -16,27 +16,18 @@ export class UIManager {
           <label>COMBO</label>
           <output class="combo" data-ui="combo">X 0</output>
         </div>
-        <div class="hud-block hyper-charge-block" data-ui="hyperChargeBlock">
-          <label>SOLAR CHARGE</label>
-          <div class="hyper-charge-row">
-            <div class="hyper-charge-track" data-ui="hyperChargeTrack">
-              <i data-ui="hyperChargeFill"></i>
-            </div>
-            <strong data-ui="hyperChargeValue">0%</strong>
-          </div>
-        </div>
         <div class="hud-block" data-ui="shieldBlock">
           <label>SHIELD</label>
           <div class="shield-row" data-ui="shield"></div>
         </div>
-        <div class="hud-block compact">
+        <div class="hud-block compact auxiliary-block">
           <label>BEST</label>
           <output data-ui="best">0</output>
         </div>
       </div>
       <div class="hud hud-right">
         <div class="hud-block">
-          <label>VELOCITY</label>
+          <label>SPEED</label>
           <output data-ui="speed">0</output>
           <small>KM/H</small>
         </div>
@@ -45,14 +36,28 @@ export class UIManager {
           <output data-ui="distance">0</output>
           <small>M</small>
         </div>
-        <div class="hud-block compact flow-block">
-          <label>SECTOR</label>
-          <output data-ui="wave">ALPHA</output>
-          <small data-ui="rings">RINGS 0</small>
+        <div class="hud-block hyper-charge-block solar-charge-panel" data-ui="hyperChargeBlock">
+          <label>SOLAR CHARGE</label>
+          <div class="solar-charge-dial" data-ui="hyperChargeTrack">
+            <i class="solar-charge-progress" data-ui="hyperChargeFill"></i>
+            <span class="solar-emblem" aria-hidden="true"></span>
+            <strong data-ui="hyperChargeValue">0%</strong>
+          </div>
         </div>
-        <div class="hud-block compact">
-          <label>BOOST</label>
-          <output data-ui="boost">READY</output>
+        <div class="surge-status" data-ui="surgeStatus">
+          <span>SOLAR SURGE</span>
+          <strong>CHARGING</strong>
+        </div>
+        <div class="telemetry-row">
+          <div class="hud-block compact flow-block">
+            <label>SECTOR</label>
+            <output data-ui="wave">ALPHA</output>
+              <small data-ui="cores">CORES 0</small>
+          </div>
+          <div class="hud-block compact">
+            <label>BOOST</label>
+            <output data-ui="boost">READY</output>
+          </div>
         </div>
         <div class="hud-block mission-block">
           <label>MISSIONS</label>
@@ -62,11 +67,12 @@ export class UIManager {
       <div class="hyper-banner" data-ui="hyper">SOLAR SURGE</div>
       <div class="zone-label" data-ui="zoneLabel">ZONE: SOLAR Alpha</div>
       <div class="near-miss" data-ui="nearMiss">NEAR MISS</div>
+      <div class="surge-break" data-ui="surgeBreak">SOLAR BREAK</div>
       <div class="mission-toast" data-ui="missionToast">MISSION COMPLETE</div>
       <div class="control-hint">
         <span><kbd>A</kbd><b>LEFT</b></span>
         <span><kbd>D</kbd><b>RIGHT</b></span>
-        <span><kbd>SPACE</kbd><b>IGNITE</b></span>
+        <span><kbd>SPACE</kbd><b>BOOST / SURGE</b></span>
       </div>
       <div class="mobile-controls" data-ui="mobileControls">
         <button type="button" data-action="left" aria-label="Move left">&#9664;</button>
@@ -74,8 +80,7 @@ export class UIManager {
         <button type="button" data-action="right" aria-label="Move right">&#9654;</button>
       </div>
       <div class="center-panel" data-ui="panel">
-        <h1>SOLAR RUNNER</h1>
-        <p>PRESS <kbd>SPACE</kbd> TO IGNITE</p>
+        <p class="start-prompt">PRESS <kbd>SPACE</kbd> TO IGNITE</p>
       </div>
       <div class="hit-flash" data-ui="hitFlash"></div>
     `;
@@ -87,10 +92,12 @@ export class UIManager {
     this.hyperChargeTrack = root.querySelector('[data-ui="hyperChargeTrack"]');
     this.hyperChargeFill = root.querySelector('[data-ui="hyperChargeFill"]');
     this.hyperChargeValue = root.querySelector('[data-ui="hyperChargeValue"]');
+    this.surgeStatus = root.querySelector('[data-ui="surgeStatus"]');
+    this.surgeStatusValue = this.surgeStatus?.querySelector('strong');
     this.speed = root.querySelector('[data-ui="speed"]');
     this.distance = root.querySelector('[data-ui="distance"]');
     this.wave = root.querySelector('[data-ui="wave"]');
-    this.rings = root.querySelector('[data-ui="rings"]');
+    this.cores = root.querySelector('[data-ui="cores"]');
     this.best = root.querySelector('[data-ui="best"]');
     this.boost = root.querySelector('[data-ui="boost"]');
     this.shield = root.querySelector('[data-ui="shield"]');
@@ -100,12 +107,14 @@ export class UIManager {
     this.hyper = root.querySelector('[data-ui="hyper"]');
     this.zoneLabel = root.querySelector('[data-ui="zoneLabel"]');
     this.nearMiss = root.querySelector('[data-ui="nearMiss"]');
+    this.surgeBreak = root.querySelector('[data-ui="surgeBreak"]');
     this.missions = root.querySelector('[data-ui="missions"]');
     this.missionToast = root.querySelector('[data-ui="missionToast"]');
     this.mobileControls = root.querySelector('[data-ui="mobileControls"]');
     this.mobilePrimary = root.querySelector('[data-action="primary"]');
     this.shieldFlashTimer = null;
     this.hitFlashTimer = null;
+    this.solarCoreFlashTimer = null;
     this.displayCache = new Map();
     this.missionRenderKey = '';
     this.shieldRenderKey = '';
@@ -154,6 +163,30 @@ export class UIManager {
     this.nearMiss.classList.remove('active');
     void this.nearMiss.offsetWidth;
     this.nearMiss.classList.add('active');
+  }
+
+  showSolarCore(scoreGain, chargeGain, riskLevel = 'safe', surgeReady = false, surgeActive = false) {
+    const prefix = riskLevel === 'lateDodge' ? 'LATE DODGE CORE' : riskLevel === 'risk' ? 'RISK CORE' : 'SOLAR CORE';
+    const chargeText = surgeActive ? 'SURGE BONUS' : surgeReady ? 'SURGE READY' : `+${chargeGain} CHARGE`;
+    this.showStatus(`${prefix} +${scoreGain} | ${chargeText}`);
+    if (!this.hyperChargeBlock) return;
+    window.clearTimeout(this.solarCoreFlashTimer);
+    this.hyperChargeBlock.classList.remove('core-pickup');
+    void this.hyperChargeBlock.offsetWidth;
+    this.hyperChargeBlock.classList.add('core-pickup');
+    this.solarCoreFlashTimer = window.setTimeout(() => {
+      this.hyperChargeBlock.classList.remove('core-pickup');
+    }, 520);
+  }
+
+  showSurgeBreak(chain = 1, scoreGain = 0) {
+    if (!this.surgeBreak) return;
+    const chainLabel = chain > 1 ? ` X${chain}` : '';
+    this.surgeBreak.textContent = `SOLAR BREAK${chainLabel} +${scoreGain}`;
+    this.surgeBreak.dataset.chain = String(Math.min(chain, 6));
+    this.surgeBreak.classList.remove('active');
+    void this.surgeBreak.offsetWidth;
+    this.surgeBreak.classList.add('active');
   }
 
   showMissionComplete(label, reward = 0, tier = 'easy') {
@@ -210,7 +243,7 @@ export class UIManager {
     this._setOutput('speed', this.speed, Math.floor(stats.speed * 7.2).toLocaleString('en-US'));
     this._setOutput('distance', this.distance, Math.floor(stats.distance).toLocaleString('en-US'));
     this._setOutput('wave', this.wave, this._formatWave(stats.wave));
-    this._setText('rings', this.rings, `RINGS ${stats.scoreRings ?? 0}`);
+    this._setText('cores', this.cores, `CORES ${stats.solarCores ?? 0}`);
     this._setOutput('best', this.best, this.bestScore.toLocaleString('en-US'));
     this._setOutput(
       'boost',
@@ -235,20 +268,28 @@ export class UIManager {
         ? 'READY'
         : `${roundedCharge}%`;
     const bannerText = stats.hyperActive
-      ? `SOLAR SURGE ${Math.max(0, stats.hyperTime ?? 0).toFixed(1)}s`
-      : 'SOLAR READY';
+      ? `SURGE ACTIVE X2 | BREAK ${Math.max(0, stats.hyperTime ?? 0).toFixed(1)}s`
+      : 'SOLAR SURGE READY';
 
     this._setText('hyperChargeValue', this.hyperChargeValue, chargeText);
     this._setText('hyperBannerText', this.hyper, bannerText);
-    if (this.hyperChargeFill && this.displayCache.get('hyperChargeFill') !== displayCharge) {
+    if (this.hyperChargeBlock && this.displayCache.get('hyperChargeFill') !== displayCharge) {
       this.displayCache.set('hyperChargeFill', displayCharge);
-      this.hyperChargeFill.style.transform = `scaleX(${displayCharge / maxCharge})`;
+      this.hyperChargeBlock.style.setProperty('--charge-angle', `${displayCharge * 3.6}deg`);
     }
+    const surgeStatusText = stats.hyperActive
+      ? `SURGE ACTIVE ${Math.max(0, stats.hyperTime ?? 0).toFixed(1)}s`
+      : stats.hyperReady
+        ? 'READY'
+        : 'CHARGING';
+    this._setText('surgeStatusText', this.surgeStatusValue, surgeStatusText);
     this._setClass('hyperChargeHigh', this.hyperChargeBlock, 'high', !stats.hyperActive && charge >= 70);
     this._setClass('hyperChargeReady', this.hyperChargeBlock, 'ready', Boolean(stats.hyperReady));
     this._setClass('hyperChargeActive', this.hyperChargeBlock, 'active', Boolean(stats.hyperActive));
     this._setClass('hyperBannerActive', this.hyper, 'active', Boolean(stats.hyperActive || stats.hyperReady));
     this._setClass('hyperBannerReady', this.hyper, 'ready', Boolean(stats.hyperReady));
+    this._setClass('surgeStatusReady', this.surgeStatus, 'ready', Boolean(stats.hyperReady));
+    this._setClass('surgeStatusActive', this.surgeStatus, 'active', Boolean(stats.hyperActive));
   }
 
   setState(state, stats) {
@@ -259,10 +300,8 @@ export class UIManager {
     }
     if (state === 'ready') {
       this.panel.innerHTML = `
-        <h1>SOLAR RUNNER</h1>
-        <p><kbd>A</kbd> / <kbd>D</kbd> OR ARROWS : MOVE</p>
-        <p><kbd>SPACE</kbd> : IGNITE / BOOST</p>
-        <p>AVOID DEVICES. BUILD COMBO. TRIGGER SOLAR SURGE.</p>
+        <p class="start-prompt">PRESS <kbd>SPACE</kbd> TO IGNITE</p>
+        <p class="start-subtitle">DODGE GATES · COLLECT CORES · UNLEASH SOLAR SURGE</p>
       `;
     }
     if (state === 'playing') {
@@ -293,7 +332,7 @@ export class UIManager {
       const rankClass = rank === 'S' || rank === 'S+' ? 'elite' : '';
       const completedMissions = stats.completedMissions ?? (stats.missions || []).filter((mission) => mission.complete).length;
       this.panel.innerHTML = `
-        <h1>SYSTEM FAILURE</h1>
+        <h1>RUN COMPLETE</h1>
         ${newBest ? '<p class="new-best">RECORD BROKEN!</p>' : ''}
         <div class="result-grid">
           <span>FINAL SCORE</span><strong>${score.toLocaleString('en-US')}</strong>
@@ -303,11 +342,11 @@ export class UIManager {
           <span>MAX COMBO</span><strong>X ${stats.maxCombo}</strong>
           <span>NEAR MISS</span><strong>${stats.nearMisses}</strong>
           <span>SURGE COUNT</span><strong>${stats.hyperCount}</strong>
-          <span>RECOVERY</span><strong>${stats.scoreRings ?? 0}</strong>
+          <span>SOLAR CORES</span><strong>${stats.solarCores ?? 0}</strong>
           <span>MISSIONS</span><strong>${completedMissions} DONE</strong>
         </div>
         ${nextRank ? `<p class="next-rank">${nextRank.remaining.toLocaleString('en-US')} POINTS TO RANK ${nextRank.rank}</p>` : '<p class="next-rank">MAX RANK REACHED</p>'}
-        <p>PRESS <kbd>SPACE</kbd> TO REBOOT</p>
+        <p>PRESS <kbd>SPACE</kbd> TO RELAUNCH</p>
       `;
     }
   }
@@ -394,8 +433,8 @@ export class UIManager {
   }
 
   _rankFor(score) {
-    if (score >= 26000) return 'S+';
-    if (score >= 18000) return 'S';
+    if (score >= 70000) return 'S+';
+    if (score >= 40000) return 'S';
     if (score >= 11000) return 'A';
     if (score >= 5000) return 'B';
     return 'C';
@@ -405,8 +444,8 @@ export class UIManager {
     const ranks = [
       { rank: 'B', score: 5000 },
       { rank: 'A', score: 11000 },
-      { rank: 'S', score: 18000 },
-      { rank: 'S+', score: 26000 },
+      { rank: 'S', score: 40000 },
+      { rank: 'S+', score: 70000 },
     ];
     const next = ranks.find((rank) => score < rank.score);
     if (!next) return null;

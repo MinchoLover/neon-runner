@@ -14,6 +14,8 @@ import {
   OPENING_TRANSITION_DURATION,
   OPENING_TRANSITION_SPAWN_Z,
   PLAYER_HIT_Z_RANGE,
+  SOLAR_CORE,
+  SOLAR_CORE_PATTERNS,
   TUNNEL_PALETTES,
   getLaneAngle,
   getLanePosition,
@@ -21,9 +23,8 @@ import {
 
 const DEBUG_HITBOX = false;
 const PLAYER_HIT_X_RANGE = 1.05;
-const SCORE_RING_X_RANGE = 0.9;
 const DEBUG_OPENING = Boolean(import.meta.env?.DEV);
-const WAVE_DURATION = 12;
+const WAVE_DURATION = 10.5;
 const WAVE_SEQUENCE = ['warmup', 'pressure', 'risk', 'rift', 'cooldown'];
 const READABILITY_COLORS = {
   blocker: 0xff6200,
@@ -33,20 +34,22 @@ const READABILITY_COLORS = {
   reward: 0xffffff,
 };
 const OBSTACLE_MODEL_PATHS = {
-  energyBarricade: '/models/obstacles/energy_gate.glb',
-  securityGate: '/models/obstacles/energy_gate.glb',
-  laserFan: '/models/obstacles/laser_fan.glb',
-  shutterTrap: '/models/obstacles/shutter_gate.glb',
-  plasmaMine: '/models/obstacles/plasma_mine.glb',
+  energyBarricade: '/assets/models/obstacles/energy_pylon.glb',
+  securityGate: '/assets/models/obstacles/energy_pylon.glb',
+  laserFan: '/assets/models/obstacles/turret_arm.glb',
+  shutterTrap: '/assets/models/obstacles/energy_pylon.glb',
+  plasmaMine: '/assets/models/obstacles/solar_crate.glb',
 };
 
 export class ObstacleManager {
   constructor(scene) {
     this.scene = scene;
     this.obstacles = [];
-    this.scoreRings = [];
+    this.solarCores = [];
     this.spawnTimer = 0;
     this.patternIndex = 0;
+    this.solarCorePatternIndex = 0;
+    this.nextSolarCoreTime = SOLAR_CORE_PATTERNS[0].minElapsed;
     this.nextSpawnDelay = null;
     this.currentWave = 'warmup';
     this.openingSpawnedIds = new Set();
@@ -56,30 +59,30 @@ export class ObstacleManager {
     this._loadOptionalObstacleModels();
     this.palette = TUNNEL_PALETTES[0];
     this.boxMaterial = new THREE.MeshStandardMaterial({
-      color: 0x110900,
+      color: 0x000000,
       emissive: READABILITY_COLORS.blocker,
-      emissiveIntensity: 0.78,
-      metalness: 0.65,
-      roughness: 0.34,
+      emissiveIntensity: 0.88,
+      metalness: 0.82,
+      roughness: 0.24,
     });
     this.barMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a0d00,
+      color: 0x000000,
       emissive: READABILITY_COLORS.bar,
-      emissiveIntensity: 0.86,
-      metalness: 0.75,
-      roughness: 0.28,
+      emissiveIntensity: 0.95,
+      metalness: 0.9,
+      roughness: 0.2,
     });
     this.edgeMaterial = new THREE.LineBasicMaterial({
       color: COLORS.solarGold,
       transparent: true,
-      opacity: 0.62,
+      opacity: 0.72,
     });
     this.gateMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a0f05,
+      color: 0x000000,
       emissive: READABILITY_COLORS.gateBlock,
-      emissiveIntensity: 0.74,
-      metalness: 0.62,
-      roughness: 0.3,
+      emissiveIntensity: 0.84,
+      metalness: 0.8,
+      roughness: 0.22,
     });
     this.safeFrameMaterial = new THREE.MeshStandardMaterial({
       color: 0x02191c,
@@ -88,12 +91,29 @@ export class ObstacleManager {
       metalness: 0.2,
       roughness: 0.22,
     });
-    this.scoreRingMaterial = new THREE.MeshBasicMaterial({
+    this.solarCoreWhiteMaterial = new THREE.MeshBasicMaterial({
       color: COLORS.white,
       transparent: true,
-      opacity: 0.92,
+      opacity: 0.96,
       blending: THREE.AdditiveBlending,
       toneMapped: false,
+      depthWrite: false,
+    });
+    this.solarCoreGoldMaterial = new THREE.MeshBasicMaterial({
+      color: COLORS.solarGold,
+      transparent: true,
+      opacity: 0.52,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+      depthWrite: false,
+    });
+    this.solarCoreCyanMaterial = new THREE.MeshBasicMaterial({
+      color: COLORS.cyan,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+      depthWrite: false,
     });
     this.openingPanelMaterial = new THREE.MeshStandardMaterial({
       color: 0x1a0800,
@@ -111,6 +131,67 @@ export class ObstacleManager {
       metalness: 0.64,
       roughness: 0.2,
     });
+    this.laserCoreMaterial = new THREE.MeshBasicMaterial({
+      color: READABILITY_COLORS.bar,
+      toneMapped: false,
+    });
+    this.mineShellMaterial = new THREE.MeshBasicMaterial({
+      color: READABILITY_COLORS.blocker,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.58,
+      toneMapped: false,
+    });
+    this.mechanicalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x101820,
+      emissive: 0x301600,
+      emissiveIntensity: 0.18,
+      metalness: 0.9,
+      roughness: 0.24,
+    });
+    this.solarTrimMaterial = new THREE.MeshStandardMaterial({
+      color: 0x3a2104,
+      emissive: COLORS.solarGold,
+      emissiveIntensity: 0.9,
+      metalness: 0.72,
+      roughness: 0.18,
+    });
+    this.warningLightMaterial = new THREE.MeshBasicMaterial({
+      color: COLORS.solarOrange,
+      toneMapped: false,
+    });
+    this._buildAttractPreview();
+  }
+
+  _buildAttractPreview() {
+    this.previewGroup = new THREE.Group();
+    this.previewGroup.userData.decorative = true;
+
+    const leftBarricade = new THREE.Group();
+    leftBarricade.position.z = -15;
+    leftBarricade.scale.setScalar(0.92);
+    this._addEnergyBarricade(leftBarricade, 0);
+
+    const rightFan = new THREE.Group();
+    rightFan.position.z = -21;
+    this._addLaserFan(rightFan, 2);
+
+    const centerGate = new THREE.Group();
+    centerGate.position.z = -34;
+    centerGate.scale.setScalar(0.9);
+    this._addSecurityGatePanel(centerGate, 1);
+
+    const rightBarricade = new THREE.Group();
+    rightBarricade.position.z = -9.5;
+    rightBarricade.scale.setScalar(1.08);
+    this._addEnergyBarricade(rightBarricade, 2);
+
+    this.previewGroup.add(leftBarricade, rightFan, centerGate, rightBarricade);
+    this.scene.add(this.previewGroup);
+  }
+
+  setPreviewVisible(visible) {
+    if (this.previewGroup) this.previewGroup.visible = Boolean(visible);
   }
 
   _loadOptionalObstacleModels() {
@@ -194,11 +275,13 @@ export class ObstacleManager {
 
   reset() {
     for (const item of this.obstacles) this._removeObstacle(item);
-    for (const item of this.scoreRings) this._removeScoreRing(item);
+    for (const item of this.solarCores) this._removeSolarCore(item);
     this.obstacles = [];
-    this.scoreRings = [];
+    this.solarCores = [];
     this.spawnTimer = OPENING_MIN_SAFE_GAP;
     this.patternIndex = 0;
+    this.solarCorePatternIndex = 0;
+    this.nextSolarCoreTime = SOLAR_CORE_PATTERNS[0].minElapsed;
     this.nextSpawnDelay = null;
     this.currentWave = 'warmup';
     this.openingSpawnedIds.clear();
@@ -219,10 +302,18 @@ export class ObstacleManager {
     this.safeFrameMaterial.color.setHex(READABILITY_COLORS.safe).multiplyScalar(0.18);
     this.safeFrameMaterial.emissive.setHex(READABILITY_COLORS.safe);
     this.edgeMaterial.color.setHex(palette.accent ?? COLORS.white);
-    this.scoreRingMaterial.color.setHex(READABILITY_COLORS.reward);
-    this.openingPanelMaterial.emissive.setHex(0x26052f);
+    this.solarCoreWhiteMaterial.color.setHex(READABILITY_COLORS.reward);
+    this.solarCoreGoldMaterial.color.setHex(COLORS.solarGold);
+    this.solarCoreCyanMaterial.color.setHex(COLORS.cyan);
+    this.openingPanelMaterial.color.setHex(0x120b04);
+    this.openingPanelMaterial.emissive.setHex(0x2a1202);
     this.openingFrameMaterial.color.setHex(READABILITY_COLORS.blocker).multiplyScalar(0.18);
     this.openingFrameMaterial.emissive.setHex(READABILITY_COLORS.blocker);
+    this.laserCoreMaterial.color.setHex(READABILITY_COLORS.bar);
+    this.mineShellMaterial.color.setHex(READABILITY_COLORS.blocker);
+    this.mechanicalMaterial.emissive.setHex(0x301600);
+    this.solarTrimMaterial.color.setHex(READABILITY_COLORS.blocker).multiplyScalar(0.24);
+    this.solarTrimMaterial.emissive.setHex(READABILITY_COLORS.blocker);
   }
 
   update(delta, speed, elapsed, callbacks) {
@@ -240,7 +331,9 @@ export class ObstacleManager {
       const interval = this._spawnInterval(elapsed);
       this.spawnTimer -= delta;
       if (this.spawnTimer <= 0) {
-        this.spawnPattern(elapsed, this._normalSpawnZ(elapsed));
+        const spawnZ = this._normalSpawnZ(elapsed);
+        const spawnedSolarCorePattern = this._maybeSpawnSolarCorePattern(elapsed, spawnZ, callbacks);
+        if (!spawnedSolarCorePattern) this.spawnPattern(elapsed, spawnZ);
         callbacks.onPattern?.(this.lastSafeLane);
         this.spawnTimer = this.nextSpawnDelay ?? interval;
         this.nextSpawnDelay = null;
@@ -249,6 +342,7 @@ export class ObstacleManager {
 
     for (let i = this.obstacles.length - 1; i >= 0; i -= 1) {
       const obstacle = this.obstacles[i];
+      const previousZ = obstacle.group.position.z;
       // Obstacles approach the camera by z-axis translation; bars add rotation transform.
       obstacle.group.position.z += speed * delta;
       if (obstacle.rods) {
@@ -258,9 +352,20 @@ export class ObstacleManager {
       }
       if (obstacle.debugHelper) obstacle.debugHelper.position.z = obstacle.group.position.z;
 
-      if (!obstacle.hit && this._hitsPlayer(obstacle, callbacks)) {
+      if (!obstacle.hit && this._hitsPlayer(obstacle, callbacks, previousZ)) {
         obstacle.hit = true;
         if (obstacle.userData) obstacle.userData.hit = true;
+        if (callbacks.surgeActive) {
+          if (obstacle.userData) obstacle.userData.destroyed = true;
+          obstacle.group.userData.destroyed = true;
+          const impactPosition = obstacle.group.position.clone();
+          impactPosition.x = callbacks.playerX;
+          impactPosition.y = GAME.playerY + 0.35;
+          callbacks.onSurgeBreak?.(impactPosition, obstacle);
+          this._removeObstacle(obstacle);
+          this.obstacles.splice(i, 1);
+          continue;
+        }
         this._debugOpeningOutcome('hit', obstacle, elapsed);
         callbacks.onHit(obstacle.group.position, obstacle);
       }
@@ -284,7 +389,7 @@ export class ObstacleManager {
       }
     }
 
-    this._updateScoreRings(delta, speed, callbacks);
+    this._updateSolarCores(delta, speed, callbacks);
   }
 
   _updateOpeningSequence(elapsed, callbacks) {
@@ -348,77 +453,127 @@ export class ObstacleManager {
     });
   }
 
+
   spawnPattern(elapsed, spawnZ = GAME.spawnZ) {
     const safeLane = this._pickSafeLaneForPattern(elapsed);
     const patternType = this._patternType(elapsed);
     this.lastSafeLane = safeLane;
 
-    if (patternType === 'bar') {
+    if (patternType === 'single') {
+      const blockedLane = this._singleBlockedLane(safeLane);
+      this._createBox(blockedLane, spawnZ - 3.5);
+      this.nextSpawnDelay = Math.max(0.82, this._spawnInterval(elapsed) * 0.84);
+    } else if (patternType === 'bar') {
       this._createBar(this._blockedExcept(safeLane), spawnZ - 7, elapsed);
     } else if (patternType === 'gate') {
       this._createGate(safeLane, spawnZ - 5);
     } else if (patternType === 'narrow') {
       this._createGate(safeLane, spawnZ - 4);
       this._createBar(this._blockedExcept(safeLane), spawnZ - 13, elapsed);
+      this.nextSpawnDelay = Math.max(0.92, this._spawnInterval(elapsed) * 1.18);
     } else {
       const blocked = this._blockedExcept(safeLane);
       for (const lane of blocked) this._createBox(lane, spawnZ - Math.random() * 4);
     }
-    this._maybeCreateScoreRing(safeLane, patternType, elapsed, spawnZ);
+
     this.patternIndex += 1;
   }
 
-  _updateScoreRings(delta, speed, callbacks) {
-    for (let i = this.scoreRings.length - 1; i >= 0; i -= 1) {
-      const ring = this.scoreRings[i];
-      // Reward objects use the same z-axis motion and rotation transforms as obstacles.
-      ring.group.position.z += speed * delta;
-      ring.group.rotation.z += ring.spinSpeed * delta;
-      ring.group.rotation.y += ring.spinSpeed * 0.5 * delta;
-      const pulseOpacity = 0.72 + Math.sin(performance.now() * 0.012 + ring.phase) * 0.18;
-      ring.materials[0].opacity = pulseOpacity;
-      ring.materials[1].opacity = pulseOpacity * 0.52;
+  _updateSolarCores(delta, speed, callbacks) {
+    for (let i = this.solarCores.length - 1; i >= 0; i -= 1) {
+      const core = this.solarCores[i];
+      core.group.position.z += speed * delta;
+      core.group.rotation.z += core.spinSpeed * delta;
+      core.orbit.rotation.x += core.spinSpeed * 0.45 * delta;
+      core.orbit.rotation.y += core.spinSpeed * 0.72 * delta;
+      const pulse = 1 + Math.sin(performance.now() * 0.012 + core.phase) * 0.09;
+      core.glow.scale.setScalar(pulse);
+      core.materials[1].opacity = 0.46 + (pulse - 1) * 1.4;
 
-      const closeZ = Math.abs(ring.group.position.z - GAME.playerZ) < 1.05;
-      const closeX = Math.abs(callbacks.playerX - LANE_X[ring.lane]) < SCORE_RING_X_RANGE;
-      if (!ring.collected && closeZ && closeX) {
-        ring.collected = true;
-        callbacks.onScoreRing?.(ring.group.position, ring);
-        this._removeScoreRing(ring);
-        this.scoreRings.splice(i, 1);
+      const closeZ = Math.abs(core.group.position.z - GAME.playerZ) < SOLAR_CORE.collectZRange;
+      const sameLane = callbacks.playerLane === core.lane;
+      const closeX = Math.abs(callbacks.playerX - LANE_X[core.lane]) < SOLAR_CORE.collectXRange;
+      if (!core.collected && sameLane && closeZ && closeX) {
+        core.collected = true;
+        core.group.userData.collected = true;
+        callbacks.onSolarCore?.(core.group.position.clone(), core);
+        this._removeSolarCore(core);
+        this.solarCores.splice(i, 1);
         continue;
       }
 
-      if (ring.group.position.z > GAME.removeZ) {
-        this._removeScoreRing(ring);
-        this.scoreRings.splice(i, 1);
+      if (core.group.position.z > GAME.removeZ) {
+        this._removeSolarCore(core);
+        this.solarCores.splice(i, 1);
       }
     }
   }
 
-  _maybeCreateScoreRing(safeLane, patternType, elapsed, spawnZ = GAME.spawnZ) {
-    if (elapsed < 12 || this.scoreRings.length >= 4) return;
-    const wave = this._waveForElapsed(elapsed);
 
-    // Significantly increase chance during risk and pressure waves
-    const waveBoost = wave.name === 'risk' ? 0.35 : wave.name === 'pressure' ? 0.15 : wave.name === 'cooldown' ? -0.1 : 0;
-    const baseChance = elapsed < 20 ? 0.15 : elapsed < 40 ? 0.25 : 0.35;
-    const spawnChance = Math.max(0, baseChance + waveBoost);
+  _maybeSpawnSolarCorePattern(elapsed, spawnZ, callbacks) {
+    if (elapsed < this.nextSolarCoreTime || this.solarCores.length >= SOLAR_CORE.maxActive) return false;
 
-    if (Math.random() > spawnChance) return;
+    const pattern = SOLAR_CORE_PATTERNS[this.solarCorePatternIndex];
+    if (!pattern || elapsed < pattern.minElapsed) return false;
 
-    const adjacent = [safeLane - 1, safeLane + 1].filter((lane) => lane >= 0 && lane < LANE_COUNT);
-    const riskyLane = adjacent.length > 0 ? adjacent[Math.floor(Math.random() * adjacent.length)] : safeLane;
-    const lane = patternType === 'gate' || patternType === 'narrow' ? safeLane : riskyLane;
-    const z = patternType === 'narrow' || patternType === 'bar' ? spawnZ - 18 : spawnZ - 9;
-
-    this._createScoreRing(lane, z, lane !== safeLane || patternType === 'narrow' ? 'risk' : 'precision');
-
-    // 30% chance to spawn a sequential ring in a contiguous pattern during pressure/risk
-    if ((wave.name === 'risk' || wave.name === 'pressure') && Math.random() > 0.7) {
-      const seqLane = patternType === 'narrow' ? safeLane : (lane === 0 ? 1 : lane === 2 ? 1 : lane);
-      this._createScoreRing(seqLane, z - 12, 'risk');
+    if (!this._spawnSolarCorePattern(pattern, spawnZ, callbacks)) {
+      this.nextSolarCoreTime = elapsed + 0.95;
+      return false;
     }
+
+    this.solarCorePatternIndex = this.solarCorePatternIndex >= SOLAR_CORE_PATTERNS.length - 1
+      ? 1
+      : this.solarCorePatternIndex + 1;
+
+    this.nextSolarCoreTime = elapsed + pattern.cooldown + Math.random() * 0.75;
+    this.nextSpawnDelay = Math.max(0.95, this._spawnInterval(elapsed) * 1.12);
+    this.patternIndex += 1;
+
+    callbacks.onSolarCoreCue?.(pattern);
+    return true;
+  }
+
+  _spawnSolarCorePattern(pattern, spawnZ, callbacks) {
+    const playerLane = callbacks.playerLane ?? 1;
+    const adjacent = this._adjacentLanes(playerLane);
+    const coreZ = spawnZ + pattern.coreZOffset;
+    const clearAdjacent = adjacent.filter((lane) => this._canPlaceSolarCore(lane, coreZ));
+    const coreLane = clearAdjacent[Math.floor(Math.random() * clearAdjacent.length)];
+    if (coreLane == null) return false;
+
+    if (pattern.type === 'safeCore') {
+      const blockerLane = [0, 1, 2].find((lane) => lane !== playerLane && lane !== coreLane);
+      if (blockerLane == null) return false;
+      this._createBox(blockerLane, spawnZ + pattern.obstacleZOffset);
+    } else if (pattern.type === 'riskCore') {
+      // The hazard reaches the player first. Waiting for it to pass before entering
+      // the core lane is optional; staying in another lane remains fully safe.
+      this._createBox(coreLane, spawnZ + pattern.obstacleZOffset);
+    } else if (pattern.type === 'lateDodgeCore') {
+      // The current lane becomes dangerous while the adjacent core marks the dodge lane.
+      // Moving late can trigger the existing Near Miss check without changing its rules.
+      this._createBox(playerLane, spawnZ + pattern.obstacleZOffset);
+    } else {
+      return false;
+    }
+
+    this._createSolarCore(coreLane, coreZ, pattern);
+    this.lastSafeLane = pattern.type === 'riskCore' ? playerLane : coreLane;
+    return true;
+  }
+
+  _adjacentLanes(lane) {
+    return [lane - 1, lane + 1].filter((candidate) => candidate >= 0 && candidate < LANE_COUNT);
+  }
+
+  _canPlaceSolarCore(lane, z) {
+    const obstacleConflict = this.obstacles.some(
+      (obstacle) => obstacle.blockedLanes.includes(lane) && Math.abs(obstacle.group.position.z - z) < SOLAR_CORE.minObstacleGap,
+    );
+    if (obstacleConflict) return false;
+    return this.solarCores.every(
+      (core) => core.lane !== lane || Math.abs(core.group.position.z - z) >= SOLAR_CORE.minObstacleGap * 1.5,
+    );
   }
 
   _pickSafeLaneForPattern(elapsed) {
@@ -435,47 +590,109 @@ export class ObstacleManager {
     return lanes[Math.floor(Math.random() * lanes.length)];
   }
 
+
   _patternType(elapsed) {
     const roll = Math.random();
     const wave = this._waveForElapsed(elapsed);
-    if (elapsed < 10) return 'cube';
     const bias = this.palette?.bias;
-    const pressureBoost = wave.name === 'pressure' ? 0.08 : 0;
-    const riskBoost = wave.name === 'risk' ? 0.06 : 0;
-    const cooldownEase = wave.name === 'cooldown' ? -0.08 : 0;
-    const barBoost = (bias === 'bar' ? 0.1 : 0) + pressureBoost + cooldownEase;
-    const gateBoost = (bias === 'gate' ? 0.1 : 0) + pressureBoost * 0.6;
-    const fastBoost = (bias === 'fast' ? 0.05 : 0) + riskBoost;
-    if (elapsed < 25) return roll < 0.2 + barBoost ? 'bar' : roll < 0.32 + gateBoost ? 'gate' : 'cube';
-    if (elapsed < 45) return roll < 0.28 + barBoost ? 'bar' : roll < 0.46 + gateBoost ? 'gate' : roll < 0.58 + fastBoost ? 'narrow' : 'cube';
-    return roll < 0.34 + barBoost ? 'bar' : roll < 0.54 + fastBoost ? 'narrow' : roll < 0.7 + gateBoost ? 'gate' : 'cube';
+
+    if (elapsed < 10) return 'cube';
+
+    const pressureBoost = wave.name === 'pressure' ? 0.1 : 0;
+    const riskBoost = wave.name === 'risk' ? 0.08 : 0;
+    const riftBoost = wave.name === 'rift' ? 0.08 : 0;
+    const cooldownEase = wave.name === 'cooldown' ? -0.1 : 0;
+
+    const barBoost = (bias === 'bar' ? 0.08 : 0) + pressureBoost + cooldownEase;
+    const gateBoost = (bias === 'gate' ? 0.08 : 0) + pressureBoost * 0.55;
+    const narrowBoost = (bias === 'fast' ? 0.08 : 0) + riskBoost + riftBoost;
+
+    if (elapsed < 16) {
+      if (roll < 0.34) return 'single';
+      return 'cube';
+    }
+
+    if (elapsed < 28) {
+      if (roll < 0.22) return 'single';
+      if (roll < 0.42 + barBoost) return 'bar';
+      if (roll < 0.56 + gateBoost) return 'gate';
+      return 'cube';
+    }
+
+    if (elapsed < 48) {
+      if (roll < 0.28 + barBoost) return 'bar';
+      if (roll < 0.48 + gateBoost) return 'gate';
+      if (roll < 0.64 + narrowBoost) return 'narrow';
+      return 'cube';
+    }
+
+    if (roll < 0.32 + barBoost) return 'bar';
+    if (roll < 0.56 + narrowBoost) return 'narrow';
+    if (roll < 0.74 + gateBoost) return 'gate';
+    return 'cube';
   }
+
 
   _spawnInterval(elapsed) {
-    if (elapsed < 10) return 1.5;
-    if (elapsed < 25) return THREE.MathUtils.lerp(1.45, 1.05, (elapsed - 10) / 15);
-    const paletteBias = this.palette?.bias === 'fast' ? 0.08 : 0;
+    if (elapsed < 10) return 1.45;
+    if (elapsed < 22) return THREE.MathUtils.lerp(1.34, 1.08, (elapsed - 10) / 12);
+
+    const paletteBias = this.palette?.bias === 'fast' ? 0.06 : 0;
     const wave = this._waveForElapsed(elapsed);
-    const waveBias = wave.name === 'pressure' ? 0.08 : wave.name === 'risk' ? 0.04 : wave.name === 'cooldown' ? -0.12 : 0;
-    return THREE.MathUtils.clamp(1.05 - (elapsed - 25) * 0.018 - paletteBias - waveBias, 0.68, 1.18);
+    const waveBias =
+      wave.name === 'pressure'
+        ? 0.08
+        : wave.name === 'risk'
+          ? 0.05
+          : wave.name === 'rift'
+            ? 0.04
+            : wave.name === 'cooldown'
+              ? -0.14
+              : 0;
+
+    if (elapsed < 48) {
+      return THREE.MathUtils.clamp(1.08 - (elapsed - 22) * 0.011 - paletteBias - waveBias, 0.78, 1.14);
+    }
+
+    return THREE.MathUtils.clamp(0.9 - (elapsed - 48) * 0.004 - paletteBias - waveBias, 0.68, 0.98);
   }
 
+
   _waveForElapsed(elapsed) {
-    if (elapsed < 10) return { name: 'warmup', index: 0, progress: elapsed / 10, intensity: 0.08 };
+    if (elapsed < 10) {
+      return { name: 'warmup', index: 0, progress: elapsed / 10, intensity: 0.08 };
+    }
+
     const cycleTime = elapsed - 10;
     const index = Math.floor(cycleTime / WAVE_DURATION) % WAVE_SEQUENCE.length;
     const name = WAVE_SEQUENCE[index];
     const progress = (cycleTime % WAVE_DURATION) / WAVE_DURATION;
-    const intensity = name === 'pressure' ? 0.42 : name === 'risk' ? 0.36 : name === 'rift' ? 0.32 : name === 'cooldown' ? 0.04 : 0.12;
+
+    const intensity =
+      name === 'pressure'
+        ? 0.46
+        : name === 'risk'
+          ? 0.42
+          : name === 'rift'
+            ? 0.38
+            : name === 'cooldown'
+              ? 0.05
+              : 0.14;
+
     return { name, index, progress, intensity };
   }
 
-  _hitsPlayer(obstacle, callbacks) {
+  _hitsPlayer(obstacle, callbacks, previousZ = obstacle.group.position.z) {
     // Use the rendered x position so collision timing matches the visible lane transition.
     const overlapsBlockedLane = obstacle.blockedLanes.some(
       (lane) => Math.abs(callbacks.playerX - LANE_X[lane]) < PLAYER_HIT_X_RANGE,
     );
-    const closeZ = Math.abs(obstacle.group.position.z - GAME.playerZ) < PLAYER_HIT_Z_RANGE;
+    const currentZ = obstacle.group.position.z;
+    const hitWindowMin = GAME.playerZ - PLAYER_HIT_Z_RANGE;
+    const hitWindowMax = GAME.playerZ + PLAYER_HIT_Z_RANGE;
+    const zMin = Math.min(previousZ, currentZ);
+    const zMax = Math.max(previousZ, currentZ);
+    const closeZ = zMax >= hitWindowMin && zMin <= hitWindowMax;
     return overlapsBlockedLane && closeZ;
   }
 
@@ -502,37 +719,19 @@ export class ObstacleManager {
 
   _createOpeningGate(pattern, z, spawnTime) {
     const blockedLanes = pattern.blockedLanes ?? this._blockedExcept(pattern.openLane);
+    const visualType = pattern.type === 'securityGate' || pattern.type === 'hyperChargeGate'
+      ? 'securityGate'
+      : 'energyBarricade';
     const group = new THREE.Group();
     group.position.z = z;
-    const panelGeometry = new THREE.BoxGeometry(1.46, 1.18, 0.2);
-    const horizontalGeometry = new THREE.BoxGeometry(1.62, 0.08, 0.28);
-    const verticalGeometry = new THREE.BoxGeometry(0.08, 1.34, 0.28);
 
     for (const lane of blockedLanes) {
-      const position = getLanePosition(lane, 0);
-      const panel = new THREE.Mesh(panelGeometry, this.openingPanelMaterial);
-      panel.position.set(position.x, position.y + 0.22, 0);
-      const top = new THREE.Mesh(horizontalGeometry, this.openingFrameMaterial);
-      const bottom = new THREE.Mesh(horizontalGeometry, this.openingFrameMaterial);
-      const left = new THREE.Mesh(verticalGeometry, this.openingFrameMaterial);
-      const right = new THREE.Mesh(verticalGeometry, this.openingFrameMaterial);
-      top.position.set(position.x, position.y + 0.84, 0);
-      bottom.position.set(position.x, position.y - 0.4, 0);
-      left.position.set(position.x - 0.77, position.y + 0.22, 0);
-      right.position.set(position.x + 0.77, position.y + 0.22, 0);
-      group.add(panel, top, bottom, left, right);
-    }
-
-    if (pattern.openLane != null) {
-      const safePosition = getLanePosition(pattern.openLane, 0);
-      const safeFrame = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.045, 8, 28), this.safeFrameMaterial);
-      safeFrame.position.set(safePosition.x, safePosition.y + 0.26, 0.02);
-      safeFrame.scale.y = 0.72;
-      group.add(safeFrame);
+      if (visualType === 'securityGate') this._addSecurityGatePanel(group, lane);
+      else this._addEnergyBarricade(group, lane);
     }
 
     group.userData = {
-      type: pattern.type,
+      type: visualType,
       blockedLanes,
       counted: false,
       hit: false,
@@ -541,7 +740,7 @@ export class ObstacleManager {
     };
     this.scene.add(group);
     const obstacle = {
-      type: pattern.type,
+      type: visualType,
       group,
       blockedLanes,
       spinAxis: 'z',
@@ -557,35 +756,83 @@ export class ObstacleManager {
     return obstacle;
   }
 
+
   _createBox(lane, z) {
     const group = new THREE.Group();
-    
-    const coreGeom = new THREE.IcosahedronGeometry(0.42, 0);
-    const core = new THREE.Mesh(coreGeom, this.boxMaterial);
-    
-    const shellGeom = new THREE.IcosahedronGeometry(0.55, 1);
-    const shellMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2, wireframe: true });
-    const shell = new THREE.Mesh(shellGeom, shellMaterial);
-    
-    const ringGeom = new THREE.TorusGeometry(0.65, 0.035, 8, 16);
-    const ring1 = new THREE.Mesh(ringGeom, this.boxMaterial);
-    ring1.rotation.x = Math.PI / 2;
-    const ring2 = new THREE.Mesh(ringGeom, this.boxMaterial);
-    ring2.rotation.y = Math.PI / 2;
-    
-    group.add(core, shell, ring1, ring2);
-
     const position = getLanePosition(lane, z);
-    group.position.set(position.x, position.y, position.z);
-    group.rotation.set(Math.random() * 0.4, Math.random() * 0.8, getLaneAngle(lane) + Math.PI / 2);
-    group.userData = { type: 'plasmaMine', blockedLanes: [lane], counted: false, hit: false, nearMissCounted: false };
+
+    // Floating barricade: keep collision lane-based, but lift the visual so it does not look buried.
+    group.position.set(position.x, position.y + 0.92, position.z);
+    group.rotation.set(0, 0, getLaneAngle(lane));
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.26, 0.92, 0.48), this.mechanicalMaterial);
+    body.position.z = -0.05;
+
+    const face = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.72, 0.16), this.openingPanelMaterial);
+    face.position.z = 0.22;
+
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.09, 0.28), this.solarTrimMaterial);
+    const bottom = top.clone();
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.9, 0.28), this.solarTrimMaterial);
+    const right = left.clone();
+
+    top.position.set(0, 0.49, 0.28);
+    bottom.position.set(0, -0.49, 0.28);
+    left.position.set(-0.66, 0, 0.28);
+    right.position.set(0.66, 0, 0.28);
+
+    const braceA = new THREE.Mesh(new THREE.BoxGeometry(1.26, 0.07, 0.18), this.barMaterial);
+    const braceB = new THREE.Mesh(new THREE.BoxGeometry(1.26, 0.07, 0.18), this.barMaterial);
+    braceA.position.z = 0.39;
+    braceB.position.z = 0.4;
+    braceA.rotation.z = 0.58;
+    braceB.rotation.z = -0.58;
+
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), this.warningLightMaterial);
+    core.position.z = 0.52;
+
+    const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.54, 0.62), this.mechanicalMaterial);
+    const sideR = sideL.clone();
+    sideL.position.set(-0.77, 0, -0.02);
+    sideR.position.set(0.77, 0, -0.02);
+
+    const padL = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.06, 0.18), this.safeFrameMaterial);
+    const padR = padL.clone();
+    padL.position.set(-0.38, -0.58, 0.05);
+    padR.position.set(0.38, -0.58, 0.05);
+
+    group.add(
+      body,
+      face,
+      top,
+      bottom,
+      left,
+      right,
+      braceA,
+      braceB,
+      core,
+      sideL,
+      sideR,
+      padL,
+      padR,
+    );
+
+    group.userData = {
+      type: 'solarBarricade',
+      blockedLanes: [lane],
+      counted: false,
+      hit: false,
+      nearMissCounted: false,
+    };
+
     this.scene.add(group);
+
     this.obstacles.push({
-      type: 'plasmaMine',
+      type: 'solarBarricade',
       group,
       blockedLanes: [lane],
       spinAxis: 'y',
-      spinSpeed: 1.8 + Math.random() * 1.2,
+      spinSpeed: 0.18,
       hit: false,
       passed: false,
       nearMissed: false,
@@ -599,26 +846,8 @@ export class ObstacleManager {
     const rods = [];
 
     for (const lane of blockedLanes) {
-      const position = getLanePosition(lane, 0);
-      const laneAngle = getLaneAngle(lane);
-      const model = this._cloneObstacleModel('laserFan', 1.35);
-      if (model) {
-        model.position.set(position.x, position.y, 0);
-        group.add(model);
-        rods.push(model);
-      } else {
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 18), this.boxMaterial);
-        hub.rotation.x = Math.PI / 2;
-        hub.position.set(position.x, position.y, 0);
-        group.add(hub);
-        for (let i = 0; i < 4; i += 1) {
-          const blade = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.08, 0.2), this.barMaterial);
-          blade.position.copy(hub.position);
-          blade.rotation.z = laneAngle + i * (Math.PI / 2);
-          group.add(blade);
-          rods.push(blade);
-        }
-      }
+      const fan = this._addLaserFan(group, lane);
+      rods.push(fan);
     }
 
     group.userData = { type: 'laserFan', blockedLanes, counted: false, hit: false, nearMissCounted: false };
@@ -637,35 +866,80 @@ export class ObstacleManager {
     });
   }
 
+
+  _addLaserFan(group, lane) {
+    const position = getLanePosition(lane, 0);
+    const fan = new THREE.Group();
+
+    // Hovering cutter: raised and simplified so it does not look like a toy fan on the floor.
+    fan.position.set(position.x, position.y + 0.98, 0);
+    fan.rotation.z = getLaneAngle(lane);
+
+    const mount = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.38), this.mechanicalMaterial);
+    mount.position.set(0, -0.34, -0.04);
+
+    const mountStripe = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.045, 0.4), this.solarTrimMaterial);
+    mountStripe.position.set(0, -0.22, 0.1);
+
+    const hubShell = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.24, 20), this.mechanicalMaterial);
+    hubShell.rotation.x = Math.PI / 2;
+
+    const hubCore = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.3, 20), this.laserCoreMaterial);
+    hubCore.rotation.x = Math.PI / 2;
+    hubCore.position.z = 0.04;
+
+    const hubRing = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.045, 8, 28), this.solarTrimMaterial);
+    hubRing.position.z = 0.08;
+
+    const warningCap = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 10), this.warningLightMaterial);
+    warningCap.position.set(0, -0.34, 0.24);
+
+    fan.add(mount, mountStripe, hubShell, hubCore, hubRing, warningCap);
+
+    // Two-blade cutter: clearer and less toy-like than the old 3-arm fan.
+    for (let i = 0; i < 2; i += 1) {
+      const arm = new THREE.Group();
+      arm.rotation.z = i * Math.PI;
+
+      const casing = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.12, 0.24), this.mechanicalMaterial);
+      casing.position.x = 0.62;
+
+      const laser = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.035, 0.28), this.laserCoreMaterial);
+      laser.position.x = 0.64;
+      laser.position.z = 0.08;
+
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.055, 0.3), this.solarTrimMaterial);
+      rail.position.x = 0.64;
+      rail.position.z = 0.02;
+
+      const tipHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.24, 14), this.mechanicalMaterial);
+      tipHousing.rotation.x = Math.PI / 2;
+      tipHousing.position.x = 1.22;
+
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.085, 14, 10), this.openingFrameMaterial);
+      tip.position.x = 1.22;
+      tip.position.z = 0.1;
+
+      arm.add(casing, rail, laser, tipHousing, tip);
+      fan.add(arm);
+    }
+
+    const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.24), this.warningLightMaterial);
+    sensor.position.set(0, 0.38, 0.1);
+    fan.add(sensor);
+
+    group.add(fan);
+    return fan;
+  }
+
   _createGate(safeLane, z) {
     const group = new THREE.Group();
     group.position.z = z;
     const blockedLanes = this._blockedExcept(safeLane);
-    const model = this._cloneObstacleModel('securityGate', 3.8);
-    if (model) {
-      group.add(model);
-    }
-    const postGeometry = new THREE.BoxGeometry(0.46, 1.34, 0.34);
-    const capGeometry = new THREE.BoxGeometry(1.42, 0.3, 0.34);
 
     for (const lane of blockedLanes) {
-      const position = getLanePosition(lane, 0);
-      if (!model) {
-        const post = new THREE.Mesh(postGeometry, this.gateMaterial);
-        const cap = new THREE.Mesh(capGeometry, this.barMaterial);
-        const panel = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.7, 0.18), this.gateMaterial);
-        post.position.set(position.x, position.y + 0.1, 0);
-        cap.position.set(position.x, position.y + 0.82, 0);
-        panel.position.set(position.x, position.y + 0.18, 0);
-        group.add(post, cap, panel);
-      }
+      this._addSecurityGatePanel(group, lane);
     }
-
-    const safePosition = getLanePosition(safeLane, 0);
-    const safeFrame = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.045, 8, 28), this.safeFrameMaterial);
-    safeFrame.position.set(safePosition.x, safePosition.y + 0.26, 0);
-    safeFrame.scale.y = 0.72;
-    group.add(safeFrame);
 
     group.userData = { type: 'securityGate', blockedLanes, counted: false, hit: false, nearMissCounted: false };
     this.scene.add(group);
@@ -682,36 +956,198 @@ export class ObstacleManager {
     });
   }
 
-  _createScoreRing(lane, z, riskType = 'risk') {
+
+  _addEnergyBarricade(group, lane) {
+    const position = getLanePosition(lane, 0);
+    const assembly = new THREE.Group();
+
+    // Lifted from the floor: reads as a hovering barricade, not a buried wall.
+    assembly.position.set(position.x, position.y + 0.96, 0);
+    assembly.rotation.z = getLaneAngle(lane);
+
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(1.58, 1.18, 0.52), this.mechanicalMaterial);
+    housing.position.z = -0.08;
+
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.88, 0.18), this.openingPanelMaterial);
+    panel.position.z = 0.22;
+
+    const inset = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.58, 0.08), this.mechanicalMaterial);
+    inset.position.z = 0.35;
+
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.1, 0.34), this.openingFrameMaterial);
+    const bottom = top.clone();
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.14, 0.34), this.openingFrameMaterial);
+    const right = left.clone();
+
+    top.position.set(0, 0.58, 0.08);
+    bottom.position.set(0, -0.58, 0.08);
+    left.position.set(-0.72, 0, 0.08);
+    right.position.set(0.72, 0, 0.08);
+
+    const braceA = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.075, 0.28), this.barMaterial);
+    const braceB = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.075, 0.28), this.barMaterial);
+    braceA.rotation.z = 0.58;
+    braceB.rotation.z = -0.58;
+    braceA.position.z = 0.36;
+    braceB.position.z = 0.37;
+
+    const warningCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), this.warningLightMaterial);
+    warningCore.position.z = 0.52;
+
+    const header = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.16, 0.48), this.mechanicalMaterial);
+    header.position.set(0, 0.74, -0.01);
+
+    const headerLight = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.5), this.warningLightMaterial);
+    headerLight.position.set(0, 0.75, 0.11);
+
+    const footL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.22), this.safeFrameMaterial);
+    const footR = footL.clone();
+    footL.position.set(-0.42, -0.72, 0.06);
+    footR.position.set(0.42, -0.72, 0.06);
+
+    assembly.add(
+      housing,
+      panel,
+      inset,
+      top,
+      bottom,
+      left,
+      right,
+      braceA,
+      braceB,
+      warningCore,
+      header,
+      headerLight,
+      footL,
+      footR,
+    );
+
+    const cornerGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.42);
+    for (const [x, y] of [
+      [-0.68, -0.52],
+      [-0.68, 0.52],
+      [0.68, -0.52],
+      [0.68, 0.52],
+    ]) {
+      const corner = new THREE.Mesh(cornerGeometry, this.mechanicalMaterial);
+      corner.position.set(x, y, 0.05);
+      corner.rotation.z = Math.PI / 4;
+      assembly.add(corner);
+    }
+
+    group.add(assembly);
+  }
+
+
+  _addSecurityGatePanel(group, lane) {
+    const position = getLanePosition(lane, 0);
+    const assembly = new THREE.Group();
+
+    // Raised gate panel: reads as an aerial blocking device.
+    assembly.position.set(position.x, position.y + 1.02, 0);
+    assembly.rotation.z = getLaneAngle(lane);
+
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(1.58, 1.42, 0.5), this.mechanicalMaterial);
+    housing.position.z = -0.1;
+
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(1.18, 1.04, 0.16), this.openingPanelMaterial);
+    panel.position.z = 0.18;
+
+    const innerFrame = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.78, 0.08), this.mechanicalMaterial);
+    innerFrame.position.z = 0.31;
+
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.16, 0.36), this.gateMaterial);
+    const bottom = top.clone();
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.42, 0.36), this.gateMaterial);
+    const right = left.clone();
+
+    top.position.set(0, 0.7, 0.06);
+    bottom.position.set(0, -0.7, 0.06);
+    left.position.set(-0.74, 0, 0.06);
+    right.position.set(0.74, 0, 0.06);
+
+    const controlHead = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.2, 0.46), this.mechanicalMaterial);
+    controlHead.position.set(0, 0.88, -0.02);
+
+    const controlLight = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.055, 0.48), this.warningLightMaterial);
+    controlLight.position.set(0, 0.89, 0.1);
+
+    assembly.add(housing, panel, innerFrame, top, bottom, left, right, controlHead, controlLight);
+
+    for (const y of [-0.33, 0, 0.33]) {
+      const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.07, 0.28), this.barMaterial);
+      shutter.position.set(0, y, 0.22);
+      assembly.add(shutter);
+    }
+
+    for (const x of [-0.46, 0.46]) {
+      const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.0, 10), this.solarTrimMaterial);
+      piston.position.set(x, 0, 0.26);
+      assembly.add(piston);
+    }
+
+    const lock = new THREE.Mesh(new THREE.OctahedronGeometry(0.15, 0), this.openingFrameMaterial);
+    lock.position.z = 0.38;
+    assembly.add(lock);
+
+    const hoverPad = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.055, 0.18), this.safeFrameMaterial);
+    hoverPad.position.set(0, -0.86, 0.05);
+    assembly.add(hoverPad);
+
+    group.add(assembly);
+  }
+
+  _createSolarCore(lane, z, pattern) {
     const group = new THREE.Group();
-    const ringMaterial = this.scoreRingMaterial.clone();
-    const coreMaterial = this.scoreRingMaterial.clone();
-    coreMaterial.opacity = 0.42;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.035, 10, 32), ringMaterial);
-    const core = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.014, 8, 20), coreMaterial);
-    ring.rotation.x = Math.PI / 2;
-    core.rotation.x = Math.PI / 2;
-    group.add(ring, core);
+    const whiteMaterial = this.solarCoreWhiteMaterial.clone();
+    const goldMaterial = this.solarCoreGoldMaterial.clone();
+    const cyanMaterial = this.solarCoreCyanMaterial.clone();
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.18, 18, 12), whiteMaterial);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.36, 18, 12), goldMaterial);
+    const goldRing = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.026, 8, 32), goldMaterial);
+    const orbit = new THREE.Group();
+    const cyanOrbit = new THREE.Mesh(new THREE.TorusGeometry(0.53, 0.018, 8, 36), cyanMaterial);
+    const cyanCrossOrbit = cyanOrbit.clone();
+    cyanOrbit.rotation.x = Math.PI / 2.8;
+    cyanCrossOrbit.rotation.y = Math.PI / 2.5;
+    orbit.add(cyanOrbit, cyanCrossOrbit);
+    group.add(glow, goldRing, orbit, orb);
     const position = getLanePosition(lane, z);
     group.position.set(position.x, position.y + 0.32, position.z);
     group.rotation.z = getLaneAngle(lane);
-    group.userData = { type: 'scoreRing', blockedLanes: [], counted: false, hit: false, nearMissCounted: true };
+    group.userData = {
+      type: 'solarCore',
+      kind: 'solarCore',
+      laneIndex: lane,
+      riskLevel: pattern.riskLevel,
+      collected: false,
+      blockedLanes: [],
+      counted: false,
+      hit: false,
+      nearMissCounted: true,
+    };
     this.scene.add(group);
-    this.scoreRings.push({
-      type: 'scoreRing',
-      riskType,
+    this.solarCores.push({
+      type: 'solarCore',
+      patternId: pattern.id,
+      riskLevel: pattern.riskLevel,
+      chargeGain: pattern.chargeGain ?? SOLAR_CORE.chargeGain,
+      scoreGain: pattern.scoreGain ?? SOLAR_CORE.scoreGain,
+      comboGain: pattern.comboGain ?? SOLAR_CORE.comboGain,
       group,
       lane,
-      materials: [ringMaterial, coreMaterial],
+      materials: [whiteMaterial, goldMaterial, cyanMaterial],
+      glow,
+      orbit,
       spinSpeed: 1.8 + Math.random() * 0.7,
       phase: Math.random() * Math.PI * 2,
       collected: false,
     });
   }
 
-  _removeScoreRing(ring) {
-    this.scene.remove(ring.group);
-    this._disposeGroupResources(ring.group);
+  _removeSolarCore(core) {
+    this.scene.remove(core.group);
+    this._disposeGroupResources(core.group);
   }
 
   _removeObstacle(obstacle) {
@@ -748,9 +1184,16 @@ export class ObstacleManager {
       this.edgeMaterial,
       this.gateMaterial,
       this.safeFrameMaterial,
-      this.scoreRingMaterial,
+      this.solarCoreWhiteMaterial,
+      this.solarCoreGoldMaterial,
+      this.solarCoreCyanMaterial,
       this.openingPanelMaterial,
       this.openingFrameMaterial,
+      this.laserCoreMaterial,
+      this.mineShellMaterial,
+      this.mechanicalMaterial,
+      this.solarTrimMaterial,
+      this.warningLightMaterial,
     ].includes(material);
   }
 

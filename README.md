@@ -1,75 +1,36 @@
-# Neon Tunnel Runner
+# Solar Runner Asset Downloader
 
-A fast 3D tunnel runner built with Vite, Three.js, and WebGL post-processing.
+이 폴더는 Solar Runner 프로젝트에 쓸 외부 에셋을 자동으로 받아오고 정리하는 스크립트입니다.
 
-Race through neon lanes, dodge obstacles, chain near misses, collect risk rings, and push into Hyper Mode as the tunnel palette and speed escalate.
+## 사용법
 
-## Features
+1. 이 폴더의 `download_assets.sh`를 네 프로젝트 루트에 복사합니다.
+2. 프로젝트 루트에서 실행합니다.
 
-- Three-lane arcade runner with keyboard and touch controls
-- Bloom-lit procedural tunnel visuals
-- Rotating obstacle patterns, narrow gates, and risk rings
-- Shield, combo, boost, score, distance, and best-score HUD
-- Hyper Mode triggered by strong combo play, near misses, or distance
-- Local best score saved in browser storage
-- Synth-style procedural audio effects
-
-## Controls
-
-| Key | Action |
-| --- | --- |
-| `Space` | Start, restart, or boost |
-| `A` / `ArrowLeft` | Move left |
-| `D` / `ArrowRight` | Move right |
-| `P` / `Esc` | Pause or resume |
-
-## Getting Started
-
-Install dependencies:
-
-```sh
-npm install
+```bash
+chmod +x download_assets.sh
+./download_assets.sh
 ```
 
-Run the development server:
-
-```sh
-npm run dev
-```
-
-Build for production:
-
-```sh
-npm run build
-```
-
-Preview the production build:
-
-```sh
-npm run preview
-```
-
-## Project Structure
+그러면 다음 구조가 생성됩니다.
 
 ```text
-src/
-  main.js                 App entry point
-  style.css               Game HUD and layout styles
-  game/
-    Game.js               Main game loop and state management
-    Player.js             Player ship model and movement
-    Tunnel.js             Tunnel geometry and palette transitions
-    ObstacleManager.js    Obstacle spawning and collision checks
-    ParticleManager.js    Boost, hit, transition, and near-miss effects
-    AudioManager.js       Procedural game audio
-    UIManager.js          HUD, overlays, score, and status UI
-    constants.js          Shared gameplay and color constants
-public/
-  models/player_fighter.glb
+public/assets/_downloads/
+public/assets/raw/
+public/assets/models/player/
+public/assets/models/obstacles/
+public/assets/audio/
+docs/ASSETS.md
 ```
 
-## Tech Stack
+## 다운로드되는 에셋
 
-- Vite
-- Three.js
-- JavaScript modules
+- Kenney Space Kit: 3D ship/space object 후보
+- OpenGameArt 60 CC0 Sci-Fi SFX: 효과음 후보
+- OpenGameArt 50 CC0 Sci-Fi SFX: 효과음 후보
+
+## 주의
+
+- 자동 선택은 완벽하지 않습니다. `public/assets/model_candidates.txt`, `public/assets/audio_candidates.txt`를 확인하고 직접 골라도 됩니다.
+- 폰트 파일은 포함하지 않았습니다. HUD 폰트는 CSS import 또는 시스템 fallback을 권장합니다.
+- 외부 모델은 visual 용도로만 쓰고, collision은 기존 lane-based 방식을 유지하세요.

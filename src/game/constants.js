@@ -50,6 +50,58 @@ export const OPENING_PATTERNS = [
   },
 ];
 
+export const SOLAR_CORE = {
+  chargeGain: 24,
+  scoreGain: 300,
+  comboGain: 1,
+  collectZRange: 1.15,
+  collectXRange: 0.95,
+  minObstacleGap: 5.5,
+  maxActive: 4,
+};
+
+export const SOLAR_CORE_PATTERNS = [
+  {
+    id: 'safe-core',
+    type: 'safeCore',
+    riskLevel: 'safe',
+    chargeGain: 24,
+    scoreGain: 300,
+    comboGain: 1,
+    minElapsed: 8,
+    coreZOffset: 3.5,
+    obstacleZOffset: -4,
+    cooldown: 6.2,
+    tutorialText: 'SOLAR CORE: COLLECT FOR SURGE',
+  },
+  {
+    id: 'risk-core',
+    type: 'riskCore',
+    riskLevel: 'risk',
+    chargeGain: 34,
+    scoreGain: 480,
+    comboGain: 2,
+    minElapsed: 14,
+    coreZOffset: -5.5,
+    obstacleZOffset: 6.5,
+    cooldown: 7.2,
+    tutorialText: 'RISK CORE: WAIT, THEN COMMIT',
+  },
+  {
+    id: 'late-dodge-core',
+    type: 'lateDodgeCore',
+    riskLevel: 'lateDodge',
+    chargeGain: 42,
+    scoreGain: 680,
+    comboGain: 3,
+    minElapsed: 20,
+    coreZOffset: -1.2,
+    obstacleZOffset: 5.4,
+    cooldown: 8.2,
+    tutorialText: 'LATE DODGE CORE: BIG SURGE',
+  },
+];
+
 export const COLORS = {
   cyan: 0x00e5ff,
   solarGold: 0xffb700,
@@ -122,38 +174,39 @@ export const TUNNEL_PALETTES = [
 
 export const HYPER_PALETTE = {
   name: 'SOLAR SURGE',
-  primary: 0xffffff,
+  primary: 0x9af7ff,
   secondary: 0xffb700,
-  accent: 0xffffff,
-  obstacle: 0xffffff,
-  light: 0xffb700,
-  fog: 0x060200,
-  background: 0x080300,
+  accent: 0xff7a18,
+  obstacle: 0xffb700,
+  light: 0xffd36a,
+  fog: 0x030704,
+  background: 0x030804,
   bias: 'hyper',
 };
 
 export const GAME = {
-  startSpeed: 16,
-  maxSpeed: 36,
-  boostSpeed: 10,
-  boostDuration: 0.55,
-  boostCooldown: 1.25,
+  startSpeed: 15.5,
+  maxSpeed: 38,
+  boostSpeed: 11,
+  boostDuration: 0.58,
+  boostCooldown: 1.05,
   laneWidth: 3,
   playerZ: 5.4,
   playerY: -2.15,
   spawnZ: -104,
   removeZ: 9,
   shield: 3,
-  hyperDuration: 10,
+  hyperDuration: 9.5,
   hyperChargeMax: 100,
-  hyperNearMissGain: 25,
-  hyperPassGain: 3,
-  hyperComboMilestone: 5,
-  hyperComboMilestoneGain: 5,
-  hyperRingGain: 6,
-  hyperHitLoss: 35,
+  hyperNearMissGain: 16,
+  hyperPassGain: 4,
+  hyperComboMilestone: 4,
+  hyperComboMilestoneGain: 6,
+  hyperHitLoss: 24,
   hyperReadyDelay: 0.65,
-  openingPassChargeGain: 10,
+  openingPassChargeGain: 12,
+  surgeBreakScore: 650,
+  surgeBreakComboGain: 2,
 };
 
 export function getWrappedLaneIndex(index) {
@@ -186,3 +239,13 @@ export const AUDIO_EVENT_COOLDOWN = 0.1;
 export const SOLAR_CORE_BASE_INTENSITY = 0.6;
 export const SOLAR_CORE_SURGE_INTENSITY = 1.2;
 
+export const TUNNEL_VISUALS = {
+  ringCount: 24,
+  ringSpacing: 4.6,
+  radius: 5.55,
+  wallLength: 132,
+  wallSegmentCount: 12,
+  streakCount: 180,
+  streakRecycleZ: 9,
+  solarCoreZ: -112,
+};

@@ -847,6 +847,59 @@ kbd {
   animation: near-miss-pop 0.62s ease-out;
 }
 
+.surge-break {
+  position: fixed;
+  z-index: 4;
+  top: 34%;
+  left: 50%;
+  pointer-events: none;
+  transform: translateX(-50%);
+  opacity: 0;
+  color: #fff8d6;
+  font-size: clamp(1.35rem, 3.5vw, 2.8rem);
+  font-weight: 950;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.98),
+    0 0 24px rgba(255, 183, 0, 0.96),
+    0 0 44px rgba(255, 98, 0, 0.72);
+}
+
+.surge-break.active {
+  animation: surge-break-pop 0.52s cubic-bezier(0.16, 0.84, 0.28, 1);
+}
+
+.surge-break[data-chain="4"],
+.surge-break[data-chain="5"],
+.surge-break[data-chain="6"] {
+  color: #ffffff;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 1),
+    0 0 30px rgba(255, 183, 0, 1),
+    0 0 54px rgba(255, 98, 0, 0.9);
+}
+
+@keyframes surge-break-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.72);
+  }
+  22% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.12);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-24px) scale(1.04);
+  }
+}
+
 .near-miss[data-chain="3"],
 .near-miss[data-chain="4"] {
   color: #ffffff;
@@ -958,5 +1011,1055 @@ kbd {
 @media (hover: none) and (pointer: coarse) {
   .mobile-controls {
     display: grid;
+  }
+}
+
+/* Solar Runner reference art direction */
+:root {
+  color: #edfaff;
+  background: #01050a;
+  --solar-cyan: #43ddff;
+  --solar-cyan-soft: rgba(67, 221, 255, 0.48);
+  --solar-gold: #ffd04a;
+  --solar-orange: #ff8a18;
+  --solar-panel: rgba(2, 12, 18, 0.82);
+  --solar-panel-deep: rgba(1, 6, 11, 0.94);
+  font-family: "Arial Narrow", "Roboto Condensed", Rajdhani, Orbitron, Inter, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 174, 36, 0.12), transparent 25%),
+    radial-gradient(circle at 50% 100%, rgba(29, 185, 255, 0.1), transparent 36%),
+    #01050a;
+}
+
+.hit-flash {
+  background:
+    radial-gradient(circle at 50% 64%, rgba(255, 255, 255, 0.4), transparent 22%),
+    radial-gradient(circle at 50% 50%, rgba(255, 116, 18, 0.3), transparent 56%);
+}
+
+.hud {
+  top: 18px;
+  gap: 11px;
+  width: clamp(215px, 15.5vw, 280px);
+}
+
+.hud-left {
+  left: 22px;
+}
+
+.hud-right {
+  right: 22px;
+  width: clamp(195px, 14.5vw, 250px);
+}
+
+.brand,
+.hud-block,
+.surge-status {
+  position: relative;
+  border: 1px solid rgba(88, 226, 255, 0.72);
+  background:
+    linear-gradient(90deg, rgba(255, 190, 34, 0.09), transparent 4px),
+    repeating-linear-gradient(115deg, transparent 0 24px, rgba(67, 221, 255, 0.026) 25px 26px),
+    linear-gradient(135deg, rgba(8, 34, 43, 0.76), transparent 43%),
+    linear-gradient(160deg, var(--solar-panel), var(--solar-panel-deep));
+  box-shadow:
+    0 0 18px rgba(34, 202, 255, 0.14),
+    inset 0 0 30px rgba(35, 180, 228, 0.1),
+    inset 4px 0 0 rgba(255, 192, 46, 0.18),
+    inset 0 -1px 0 rgba(255, 197, 45, 0.22);
+  clip-path: polygon(0 18px, 18px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 17px), calc(100% - 17px) 100%, 0 100%);
+}
+
+.brand::before,
+.hud-block::before,
+.surge-status::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-top: 1px solid rgba(124, 238, 255, 0.32);
+  border-left: 1px solid rgba(98, 229, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 199, 55, 0.12);
+  clip-path: polygon(0 12px, 12px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.brand::after,
+.hud-block::after,
+.surge-status::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 12px;
+  width: 38%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 204, 63, 0.88));
+  box-shadow: 0 0 9px rgba(255, 191, 31, 0.44);
+  pointer-events: none;
+}
+
+.brand {
+  min-height: 118px;
+  align-content: center;
+  gap: 8px;
+  padding: 18px 20px 16px;
+}
+
+.brand div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  white-space: nowrap;
+}
+
+.brand span,
+.brand strong {
+  font-style: italic;
+  font-weight: 900;
+  line-height: 0.92;
+}
+
+.brand span {
+  color: var(--solar-gold);
+  font-size: clamp(1.65rem, 2.3vw, 2.55rem);
+  text-shadow: 0 0 16px rgba(255, 188, 41, 0.82);
+}
+
+.brand strong {
+  color: var(--solar-cyan);
+  font-size: clamp(1.05rem, 1.55vw, 1.65rem);
+  text-shadow: 0 0 14px rgba(39, 205, 255, 0.75);
+}
+
+.brand small {
+  color: #7de9ff;
+  font-size: clamp(0.72rem, 1vw, 1rem);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-shadow: 0 0 10px rgba(39, 205, 255, 0.56);
+}
+
+.hud-block {
+  padding: 14px 17px 16px;
+}
+
+.hud-left > .hud-block:not(.auxiliary-block),
+.hud-right > .hud-block:not(.solar-charge-panel):not(.mission-block) {
+  min-height: 105px;
+}
+
+.hud-block label,
+.hud-block small {
+  color: var(--solar-cyan);
+  font-size: clamp(0.75rem, 1vw, 1rem);
+  letter-spacing: 0.045em;
+  text-shadow: 0 0 9px rgba(43, 211, 255, 0.72);
+}
+
+.hud-block > label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hud-block > label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(67, 221, 255, 0.42), transparent);
+}
+
+.hud-block output {
+  margin-top: 7px;
+  color: #f4fbff;
+  font-size: clamp(1.85rem, 3vw, 3.25rem);
+  font-weight: 700;
+  text-shadow: 0 0 16px rgba(224, 250, 255, 0.4);
+}
+
+.hud-right > .hud-block:not(.solar-charge-panel) > small {
+  margin-top: -2px;
+  color: #82eaff;
+  text-align: right;
+}
+
+.hud-block .combo {
+  color: var(--solar-gold);
+  text-shadow: 0 0 16px rgba(255, 189, 35, 0.72);
+}
+
+.auxiliary-block {
+  display: none;
+}
+
+.solar-charge-panel {
+  --charge-angle: 0deg;
+  min-height: 226px;
+  padding: 16px 16px 18px;
+}
+
+.solar-charge-panel > label {
+  color: var(--solar-gold);
+  font-size: clamp(0.86rem, 1.1vw, 1.08rem);
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 193, 39, 0.72);
+}
+
+.solar-charge-dial {
+  position: relative;
+  width: clamp(138px, 10.8vw, 168px);
+  aspect-ratio: 1;
+  margin: 10px auto 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(3, 12, 16, 0.96) 0 42%, transparent 43%),
+    repeating-conic-gradient(from -90deg, rgba(70, 222, 255, 0.9) 0deg 7deg, transparent 7deg 11deg);
+  box-shadow:
+    0 0 24px rgba(44, 211, 255, 0.2),
+    0 0 34px rgba(255, 187, 28, 0.09),
+    inset 0 0 24px rgba(47, 207, 255, 0.2);
+}
+
+.solar-charge-dial::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 1px solid rgba(255, 210, 83, 0.45);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -90deg, rgba(255, 211, 78, 0.75) 0 1deg, transparent 1deg 30deg);
+  -webkit-mask: radial-gradient(transparent 0 73%, #000 74% 77%, transparent 78%);
+  mask: radial-gradient(transparent 0 73%, #000 74% 77%, transparent 78%);
+}
+
+.solar-charge-dial::after {
+  content: "";
+  position: absolute;
+  inset: 19%;
+  border: 2px solid rgba(255, 207, 73, 0.72);
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px rgba(255, 183, 24, 0.36),
+    inset 0 0 12px rgba(255, 183, 24, 0.2);
+}
+
+.solar-charge-progress {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--solar-gold) 0deg var(--charge-angle), transparent var(--charge-angle) 360deg);
+  filter: drop-shadow(0 0 5px rgba(255, 184, 27, 0.82));
+  -webkit-mask: radial-gradient(transparent 0 67%, #000 68% 83%, transparent 84%);
+  mask: radial-gradient(transparent 0 67%, #000 68% 83%, transparent 84%);
+}
+
+.solar-emblem {
+  position: relative;
+  z-index: 1;
+  width: 36%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffbd1 0 18%, #ffd445 20% 48%, #7b3c03 51% 55%, #090c0d 58%);
+  box-shadow: 0 0 20px rgba(255, 185, 28, 0.9), inset 0 0 8px rgba(255, 255, 255, 0.7);
+}
+
+.solar-emblem::before {
+  content: "";
+  position: absolute;
+  inset: -34%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, var(--solar-gold) 0deg 5deg, transparent 5deg 30deg);
+  -webkit-mask: radial-gradient(transparent 0 52%, #000 54% 68%, transparent 70%);
+  mask: radial-gradient(transparent 0 52%, #000 54% 68%, transparent 70%);
+}
+
+.solar-charge-dial strong {
+  position: absolute;
+  z-index: 2;
+  bottom: 9%;
+  min-width: 0;
+  color: #f7fcff;
+  font-size: clamp(0.7rem, 0.9vw, 0.92rem);
+  font-style: italic;
+  text-shadow: 0 0 8px rgba(67, 221, 255, 0.8);
+}
+
+.hyper-charge-block.high,
+.hyper-charge-block.ready,
+.hyper-charge-block.active {
+  border-color: rgba(255, 204, 65, 0.82);
+  box-shadow:
+    0 0 24px rgba(255, 180, 26, 0.25),
+    inset 0 0 22px rgba(67, 221, 255, 0.1);
+}
+
+.solar-charge-panel.core-pickup {
+  animation: solar-core-pickup 0.52s ease-out;
+}
+
+@keyframes solar-core-pickup {
+  0% {
+    filter: brightness(1.55);
+    box-shadow: 0 0 36px rgba(255, 194, 45, 0.55), inset 0 0 28px rgba(255, 220, 105, 0.2);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.surge-status {
+  min-height: 74px;
+  display: grid;
+  align-content: center;
+  padding: 10px 14px 11px;
+  color: var(--solar-gold);
+  text-align: center;
+  font-style: italic;
+  text-shadow: 0 0 10px rgba(255, 190, 30, 0.72);
+}
+
+.surge-status span,
+.surge-status strong {
+  display: block;
+}
+
+.surge-status span {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+
+.surge-status strong {
+  margin-top: 1px;
+  color: #ffe67c;
+  font-size: 1.18rem;
+}
+
+.surge-status.ready,
+.surge-status.active {
+  border-color: rgba(255, 211, 82, 0.9);
+  background: linear-gradient(135deg, rgba(92, 50, 2, 0.72), rgba(5, 15, 18, 0.9));
+  animation: solar-ready-pulse 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes solar-ready-pulse {
+  to { box-shadow: 0 0 28px rgba(255, 185, 28, 0.34), inset 0 0 20px rgba(255, 185, 28, 0.12); }
+}
+
+.telemetry-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.telemetry-row .hud-block {
+  min-width: 0;
+  min-height: 72px;
+  padding: 10px 11px;
+}
+
+.telemetry-row .hud-block output {
+  overflow: hidden;
+  font-size: clamp(0.88rem, 1.25vw, 1.2rem);
+  text-overflow: ellipsis;
+}
+
+.flow-block small,
+.mission-item small em {
+  color: var(--solar-gold);
+  text-shadow: 0 0 9px rgba(255, 181, 22, 0.62);
+}
+
+.mission-block {
+  position: fixed;
+  right: auto;
+  bottom: 24px;
+  left: 28px;
+  width: clamp(218px, 18vw, 330px);
+  padding-top: 10px;
+  opacity: 0.84;
+}
+
+[data-state="ready"] .mission-block,
+[data-state="ready"] .telemetry-row {
+  display: none;
+}
+
+.mission-list {
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.mission-item i::before {
+  background: linear-gradient(90deg, var(--solar-cyan), var(--solar-gold));
+  box-shadow: 0 0 10px rgba(51, 210, 255, 0.6);
+}
+
+.shield-row i {
+  width: 28px;
+  height: 32px;
+  border-color: rgba(67, 221, 255, 0.52);
+  border-radius: 4px 4px 12px 12px;
+  clip-path: polygon(50% 0, 100% 18%, 86% 78%, 50% 100%, 14% 78%, 0 18%);
+}
+
+.shield-row i.active {
+  border-color: var(--solar-cyan);
+  background: linear-gradient(180deg, rgba(80, 226, 255, 0.72), rgba(9, 82, 110, 0.14));
+}
+
+.center-panel {
+  bottom: 24px;
+  gap: 5px;
+  width: min(620px, 62vw);
+  text-shadow: 0 0 15px rgba(67, 221, 255, 0.72);
+}
+
+[data-state="ready"] .center-panel {
+  top: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
+.center-panel .start-prompt {
+  color: #8beaff;
+  font-size: clamp(0.92rem, 1.5vw, 1.35rem);
+  font-style: italic;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.center-panel .start-subtitle {
+  color: rgba(226, 250, 255, 0.72);
+  font-size: clamp(0.66rem, 0.9vw, 0.82rem);
+  letter-spacing: 0.08em;
+}
+
+.center-panel h1 {
+  color: var(--solar-gold);
+  text-shadow: 0 0 20px rgba(255, 185, 26, 0.72);
+}
+
+.center-panel strong,
+.new-best,
+.next-rank {
+  color: var(--solar-gold);
+  text-shadow: 0 0 12px rgba(255, 190, 34, 0.72);
+}
+
+[data-state="paused"] .center-panel,
+[data-state="gameover"] .center-panel {
+  border-color: rgba(67, 221, 255, 0.54);
+  background: linear-gradient(145deg, rgba(2, 13, 19, 0.92), rgba(18, 12, 3, 0.84));
+  box-shadow: 0 0 32px rgba(42, 206, 255, 0.17), inset 0 0 24px rgba(255, 185, 28, 0.08);
+}
+
+kbd {
+  border-color: rgba(67, 221, 255, 0.72);
+  border-radius: 3px;
+  background: rgba(3, 17, 23, 0.84);
+}
+
+.control-hint {
+  right: 24px;
+  bottom: 20px;
+  gap: 8px;
+  padding: 12px 14px;
+  border-left: 1px solid rgba(67, 221, 255, 0.4);
+  background: linear-gradient(90deg, transparent, rgba(2, 14, 20, 0.7));
+}
+
+.control-hint span {
+  display: grid;
+  grid-template-columns: 58px auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.control-hint kbd {
+  min-width: 58px;
+  padding: 5px 9px;
+  border-color: rgba(74, 220, 255, 0.72);
+  text-align: center;
+  box-shadow: 0 0 11px rgba(48, 205, 255, 0.12), inset 0 0 10px rgba(48, 205, 255, 0.08);
+}
+
+.control-hint span {
+  color: #7fe8ff;
+  font-style: italic;
+  font-size: 1.02rem;
+  letter-spacing: 0.04em;
+}
+
+.hyper-banner {
+  border-color: rgba(255, 204, 66, 0.7);
+  color: #fff1a8;
+  background: linear-gradient(90deg, rgba(4, 23, 30, 0.78), rgba(79, 42, 2, 0.74));
+  text-shadow: 0 0 16px rgba(255, 191, 30, 0.9);
+  box-shadow: 0 0 22px rgba(255, 180, 23, 0.26), inset 0 0 18px rgba(67, 221, 255, 0.1);
+}
+
+.hyper-banner.ready {
+  border-color: rgba(255, 226, 120, 0.9);
+  background: linear-gradient(90deg, rgba(5, 27, 34, 0.82), rgba(103, 55, 2, 0.82));
+}
+
+.near-miss {
+  color: #8cecff;
+  text-shadow: 0 0 14px rgba(67, 221, 255, 0.92), 0 0 28px rgba(255, 183, 26, 0.62);
+}
+
+.mission-toast {
+  border-color: rgba(255, 199, 53, 0.62);
+  background: rgba(18, 14, 3, 0.8);
+  text-shadow: 0 0 12px rgba(255, 185, 28, 0.78);
+  box-shadow: 0 0 22px rgba(255, 185, 28, 0.2), inset 0 0 16px rgba(67, 221, 255, 0.08);
+}
+
+[data-hyper="true"] .hud-block {
+  border-color: rgba(255, 207, 69, 0.72);
+  box-shadow: 0 0 22px rgba(255, 182, 24, 0.2), inset 0 0 18px rgba(67, 221, 255, 0.1);
+}
+
+.mobile-controls button {
+  border-color: rgba(67, 221, 255, 0.72);
+  border-radius: 5px;
+  background: linear-gradient(145deg, rgba(3, 24, 31, 0.9), rgba(38, 23, 3, 0.88));
+  box-shadow: 0 0 18px rgba(52, 210, 255, 0.2), inset 0 0 16px rgba(255, 184, 28, 0.09);
+}
+
+.mobile-controls .mobile-boost {
+  border-color: rgba(255, 203, 63, 0.8);
+}
+
+@media (max-height: 760px) and (min-width: 761px) {
+  .auxiliary-block,
+  .mission-block {
+    display: none;
+  }
+
+  .solar-charge-dial {
+    width: 106px;
+  }
+
+  .brand {
+    min-height: 88px;
+  }
+
+  .hud-left > .hud-block:not(.auxiliary-block),
+  .hud-right > .hud-block:not(.solar-charge-panel):not(.mission-block) {
+    min-height: 76px;
+  }
+
+  .solar-charge-panel {
+    min-height: 150px;
+    padding-block: 9px;
+  }
+
+  .surge-status {
+    min-height: 52px;
+  }
+}
+
+@media (max-width: 760px) {
+  .hud {
+    top: 10px;
+    gap: 7px;
+  }
+
+  .hud-left {
+    left: 8px;
+    width: 43vw;
+  }
+
+  .hud-right {
+    right: 8px;
+    width: 33vw;
+  }
+
+  .brand,
+  .hud-block {
+    padding: 8px 9px 9px;
+  }
+
+  .brand div {
+    gap: 5px;
+  }
+
+  .brand span {
+    font-size: 1.2rem;
+  }
+
+  .brand strong {
+    font-size: 0.92rem;
+  }
+
+  .brand small,
+  .auxiliary-block,
+  .telemetry-row,
+  .mission-block,
+  .surge-status {
+    display: none;
+  }
+
+  .hud-block output {
+    font-size: 1.35rem;
+  }
+
+  .solar-charge-dial {
+    width: min(88px, 25vw);
+  }
+
+  .solar-charge-dial strong {
+    font-size: 0.58rem;
+  }
+
+  .center-panel,
+  [data-state="ready"] .center-panel {
+    bottom: 92px;
+    width: 86vw;
+  }
+
+  .center-panel .start-prompt {
+    font-size: 0.76rem;
+  }
+}
+
+/* =========================================================
+   FINAL SOLAR RUNNER HUD POLISH
+   Purpose: premium presentation layer only.
+   Game logic is untouched.
+   ========================================================= */
+
+#app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(67, 221, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 208, 74, 0.026) 1px, transparent 1px),
+    radial-gradient(circle at 50% 12%, rgba(255, 208, 74, 0.11), transparent 36%),
+    radial-gradient(circle at 50% 78%, rgba(67, 221, 255, 0.08), transparent 42%);
+  background-size:
+    64px 64px,
+    64px 64px,
+    auto,
+    auto;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+}
+
+#app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, transparent 0 42%, rgba(0, 0, 0, 0.18) 72%, rgba(0, 0, 0, 0.48) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 18%, transparent 76%, rgba(0, 0, 0, 0.34));
+}
+
+.hud,
+.hyper-banner,
+.zone-label,
+.near-miss,
+.surge-break,
+.mission-toast,
+.control-hint,
+.center-panel,
+.mobile-controls {
+  z-index: 5;
+}
+
+.hit-flash {
+  z-index: 4;
+}
+
+.hud {
+  top: 20px;
+  gap: 10px;
+  width: clamp(210px, 14vw, 260px);
+}
+
+.hud-left {
+  left: 22px;
+}
+
+.hud-right {
+  right: 22px;
+  width: clamp(190px, 13vw, 238px);
+}
+
+.brand,
+.hud-block,
+.surge-status {
+  border: 1px solid rgba(99, 232, 255, 0.62);
+  background:
+    linear-gradient(90deg, rgba(255, 196, 43, 0.13), transparent 5px),
+    linear-gradient(135deg, rgba(12, 45, 55, 0.72), rgba(2, 8, 13, 0.88) 54%, rgba(26, 17, 4, 0.78));
+  box-shadow:
+    0 0 18px rgba(53, 214, 255, 0.13),
+    0 0 34px rgba(255, 181, 28, 0.055),
+    inset 0 0 24px rgba(67, 221, 255, 0.09),
+    inset 4px 0 0 rgba(255, 202, 58, 0.24);
+  backdrop-filter: blur(10px) saturate(1.15);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+}
+
+.brand {
+  min-height: 106px;
+  padding: 16px 18px 15px;
+}
+
+.brand div {
+  gap: 7px;
+}
+
+.brand span {
+  color: #ffd45b;
+  font-size: clamp(1.5rem, 2.05vw, 2.35rem);
+  letter-spacing: -0.04em;
+  text-shadow:
+    0 0 12px rgba(255, 195, 45, 0.82),
+    0 0 24px rgba(255, 124, 24, 0.36);
+}
+
+.brand strong {
+  color: #6feaff;
+  font-size: clamp(0.96rem, 1.35vw, 1.42rem);
+  text-shadow:
+    0 0 12px rgba(67, 221, 255, 0.76),
+    0 0 24px rgba(67, 221, 255, 0.22);
+}
+
+.brand small {
+  color: rgba(220, 251, 255, 0.74);
+  letter-spacing: 0.16em;
+}
+
+.hud-block {
+  min-height: auto !important;
+  padding: 12px 15px 13px;
+}
+
+.hud-block label,
+.hud-block small {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+}
+
+.hud-block output {
+  margin-top: 5px;
+  font-size: clamp(1.5rem, 2.42vw, 2.85rem);
+  letter-spacing: -0.04em;
+}
+
+.hud-left > .hud-block:not(.auxiliary-block),
+.hud-right > .hud-block:not(.solar-charge-panel):not(.mission-block) {
+  min-height: 86px !important;
+}
+
+.hud-block .combo {
+  color: #ffd45b;
+  text-shadow:
+    0 0 12px rgba(255, 204, 65, 0.78),
+    0 0 22px rgba(255, 117, 18, 0.28);
+}
+
+.solar-charge-panel {
+  min-height: 204px;
+  padding: 14px 14px 16px;
+}
+
+.solar-charge-panel > label {
+  font-size: 0.82rem;
+}
+
+.solar-charge-dial {
+  width: clamp(126px, 9.4vw, 152px);
+  margin-top: 9px;
+  background:
+    radial-gradient(circle, rgba(255, 242, 158, 0.12) 0 15%, rgba(5, 18, 23, 0.96) 16% 42%, transparent 43%),
+    repeating-conic-gradient(from -90deg, rgba(70, 222, 255, 0.82) 0deg 5deg, transparent 5deg 12deg);
+  box-shadow:
+    0 0 22px rgba(67, 221, 255, 0.22),
+    0 0 38px rgba(255, 191, 35, 0.14),
+    inset 0 0 25px rgba(67, 221, 255, 0.18);
+}
+
+.solar-emblem {
+  width: 34%;
+}
+
+.surge-status {
+  min-height: 62px;
+  padding: 9px 12px;
+}
+
+.surge-status span {
+  font-size: 0.7rem;
+}
+
+.surge-status strong {
+  font-size: 1.06rem;
+}
+
+.telemetry-row {
+  gap: 8px;
+}
+
+.telemetry-row .hud-block {
+  min-height: 62px !important;
+}
+
+.mission-block {
+  bottom: 22px;
+  left: 22px;
+  width: clamp(220px, 17vw, 310px);
+  opacity: 0.82;
+}
+
+.mission-item span,
+.mission-item strong,
+.mission-item small {
+  font-size: 0.72rem;
+}
+
+.control-hint {
+  right: 22px;
+  bottom: 20px;
+  opacity: 0.78;
+  transform: scale(0.94);
+  transform-origin: right bottom;
+}
+
+[data-state="playing"] .brand {
+  opacity: 0.82;
+  transform: translateX(-4px);
+}
+
+[data-state="playing"] .mission-block {
+  opacity: 0.72;
+}
+
+[data-state="ready"] .hud {
+  opacity: 0.66;
+}
+
+[data-state="ready"] .mission-block,
+[data-state="ready"] .telemetry-row,
+[data-state="ready"] .surge-status {
+  display: none;
+}
+
+[data-state="ready"] .center-panel {
+  top: 50%;
+  bottom: auto;
+  width: min(760px, 82vw);
+  padding: 28px 34px 30px;
+  transform: translate(-50%, -48%);
+  border: 1px solid rgba(106, 237, 255, 0.68);
+  background:
+    linear-gradient(90deg, rgba(255, 196, 43, 0.15), transparent 7px),
+    linear-gradient(135deg, rgba(3, 20, 27, 0.92), rgba(2, 7, 11, 0.86) 52%, rgba(42, 24, 4, 0.84));
+  box-shadow:
+    0 0 36px rgba(67, 221, 255, 0.18),
+    0 0 64px rgba(255, 181, 28, 0.12),
+    inset 0 0 28px rgba(67, 221, 255, 0.11),
+    inset 5px 0 0 rgba(255, 207, 73, 0.35);
+  clip-path: polygon(0 24px, 24px 0, calc(100% - 34px) 0, 100% 34px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%);
+}
+
+[data-state="ready"] .center-panel::before {
+  content: "SOLAR RUNNER";
+  display: block;
+  color: #ffd45b;
+  font-size: clamp(2.8rem, 7vw, 7rem);
+  font-weight: 950;
+  font-style: italic;
+  line-height: 0.82;
+  letter-spacing: -0.08em;
+  text-shadow:
+    0 0 16px rgba(255, 204, 65, 0.9),
+    0 0 42px rgba(255, 126, 24, 0.38);
+}
+
+[data-state="ready"] .center-panel::after {
+  content: "OVERDRIVE";
+  display: block;
+  margin-top: -2px;
+  color: #72edff;
+  font-size: clamp(1.2rem, 2.9vw, 2.7rem);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  text-shadow:
+    0 0 14px rgba(67, 221, 255, 0.86),
+    0 0 32px rgba(67, 221, 255, 0.34);
+}
+
+[data-state="ready"] .start-prompt {
+  margin-top: 18px;
+  color: #effdff;
+  font-size: clamp(1rem, 1.7vw, 1.45rem);
+  letter-spacing: 0.11em;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.72),
+    0 0 24px rgba(67, 221, 255, 0.4);
+}
+
+[data-state="ready"] .start-subtitle {
+  margin-top: 6px;
+  color: rgba(211, 250, 255, 0.74);
+  font-size: clamp(0.76rem, 1.05vw, 0.94rem);
+  letter-spacing: 0.15em;
+}
+
+[data-state="countdown"] .center-panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.center-panel .countdown-text {
+  color: #fff9d7;
+  text-shadow:
+    0 0 16px rgba(255, 255, 255, 0.96),
+    0 0 36px rgba(255, 200, 55, 0.82),
+    0 0 60px rgba(67, 221, 255, 0.48);
+}
+
+[data-state="gameover"] .center-panel,
+[data-state="paused"] .center-panel {
+  width: min(620px, 88vw);
+  padding: 24px 30px 26px;
+  border-color: rgba(111, 237, 255, 0.62);
+  background:
+    linear-gradient(90deg, rgba(255, 196, 43, 0.14), transparent 7px),
+    linear-gradient(145deg, rgba(4, 20, 27, 0.94), rgba(7, 8, 11, 0.9) 54%, rgba(40, 24, 4, 0.86));
+  box-shadow:
+    0 0 36px rgba(67, 221, 255, 0.17),
+    0 0 58px rgba(255, 183, 31, 0.11),
+    inset 0 0 25px rgba(67, 221, 255, 0.1);
+}
+
+[data-state="gameover"] .center-panel h1 {
+  color: #ffd45b;
+  font-size: clamp(2.4rem, 5.2vw, 5.2rem);
+  letter-spacing: -0.05em;
+}
+
+.result-grid {
+  width: min(470px, 82vw);
+  gap: 7px 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(67, 221, 255, 0.22);
+  background: rgba(1, 9, 13, 0.44);
+  box-shadow: inset 0 0 18px rgba(67, 221, 255, 0.06);
+}
+
+.result-grid span {
+  color: rgba(126, 235, 255, 0.86);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+.result-grid strong {
+  color: #fff7c6;
+  font-size: clamp(1rem, 2vw, 1.42rem);
+  text-shadow: 0 0 12px rgba(255, 204, 65, 0.42);
+}
+
+.result-grid .rank.elite {
+  color: #ffffff;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.95),
+    0 0 26px rgba(255, 204, 65, 0.92),
+    0 0 44px rgba(67, 221, 255, 0.58);
+}
+
+.hyper-banner {
+  top: 20px;
+  padding: 8px 22px;
+  border-color: rgba(255, 213, 91, 0.76);
+  background:
+    linear-gradient(90deg, rgba(6, 28, 35, 0.86), rgba(74, 42, 4, 0.84));
+  letter-spacing: 0.14em;
+}
+
+.zone-label {
+  top: 68px;
+  border-color: rgba(98, 230, 255, 0.48);
+  background: rgba(2, 14, 20, 0.68);
+}
+
+.near-miss,
+.surge-break {
+  filter: drop-shadow(0 0 18px rgba(67, 221, 255, 0.2));
+}
+
+.mission-toast {
+  top: 112px;
+  border-color: rgba(255, 210, 75, 0.62);
+  background: rgba(20, 14, 3, 0.78);
+}
+
+@media (max-height: 760px) and (min-width: 761px) {
+  [data-state="ready"] .center-panel {
+    width: min(660px, 78vw);
+    padding: 20px 28px 22px;
+  }
+
+  [data-state="ready"] .center-panel::before {
+    font-size: clamp(2.2rem, 6vw, 5.4rem);
+  }
+
+  [data-state="ready"] .center-panel::after {
+    font-size: clamp(1rem, 2.4vw, 2.1rem);
+  }
+}
+
+@media (max-width: 760px) {
+  #app::before {
+    opacity: 0.32;
+  }
+
+  .hud-left {
+    width: 42vw;
+  }
+
+  .hud-right {
+    width: 34vw;
+  }
+
+  .brand {
+    min-height: 68px;
+  }
+
+  .solar-charge-panel {
+    min-height: 110px;
+  }
+
+  [data-state="ready"] .center-panel {
+    top: 44%;
+    bottom: auto;
+    width: 90vw;
+    padding: 20px 20px 22px;
+  }
+
+  [data-state="ready"] .center-panel::before {
+    font-size: clamp(2.2rem, 12vw, 4.2rem);
+  }
+
+  [data-state="ready"] .center-panel::after {
+    font-size: clamp(0.9rem, 5vw, 1.5rem);
+    letter-spacing: 0.12em;
   }
 }
