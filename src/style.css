@@ -70,6 +70,10 @@ body {
   animation: gameover-flash 0.5s ease-out;
 }
 
+.mobile-summary {
+  display: none;
+}
+
 @keyframes gameover-flash {
   0% { opacity: 1; }
   100% { opacity: 0; }
@@ -715,6 +719,224 @@ kbd {
 
 .mobile-controls button:disabled {
   opacity: 0.45;
+}
+
+@media (max-width: 920px), (hover: none) and (pointer: coarse) {
+  body {
+    background:
+      radial-gradient(circle at 50% 12%, rgba(255, 49, 247, 0.16), transparent 28%),
+      radial-gradient(circle at 50% 100%, rgba(0, 229, 255, 0.08), transparent 34%),
+      #03010c;
+  }
+
+  .hud {
+    top: max(10px, env(safe-area-inset-top));
+    gap: 8px;
+  }
+
+  .hud-left {
+    display: none;
+  }
+
+  .hud-right {
+    display: none;
+  }
+
+  .brand {
+    padding: 12px 14px;
+  }
+
+  .brand span {
+    font-size: clamp(1.35rem, 7vw, 2rem);
+  }
+
+  .brand strong {
+    font-size: clamp(0.7rem, 3vw, 1rem);
+  }
+
+  .hud-left .hud-block {
+    padding: 11px 12px 12px;
+  }
+
+  .hud-left .hud-block:not(:first-of-type):not([data-ui="shieldBlock"]):not(.auxiliary-block) {
+    display: none;
+  }
+
+  .hud-left .auxiliary-block {
+    display: none;
+  }
+
+  .hud-right {
+    display: none;
+  }
+
+  .mobile-summary {
+    position: fixed;
+    z-index: 4;
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    left: max(10px, env(safe-area-inset-left));
+    display: grid;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .mobile-summary-brand {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(0, 229, 255, 0.36);
+    background: linear-gradient(135deg, rgba(3, 8, 25, 0.74), rgba(15, 0, 34, 0.5));
+    box-shadow:
+      0 0 14px rgba(0, 229, 255, 0.08),
+      inset 0 0 14px rgba(255, 49, 247, 0.06);
+    clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  }
+
+  .mobile-summary-brand span {
+    color: #eaf7ff;
+    font-size: clamp(1rem, 4.8vw, 1.4rem);
+    font-weight: 900;
+    font-style: italic;
+    line-height: 1;
+    text-shadow: 0 0 14px rgba(0, 229, 255, 0.6);
+  }
+
+  .mobile-summary-brand small {
+    color: #ff5bf7;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-style: italic;
+    text-shadow: 0 0 10px rgba(255, 49, 247, 0.56);
+  }
+
+  .mobile-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mobile-summary-chip {
+    padding: 9px 10px 10px;
+    border: 1px solid rgba(0, 229, 255, 0.28);
+    background: linear-gradient(135deg, rgba(3, 8, 25, 0.7), rgba(15, 0, 34, 0.42));
+    box-shadow: inset 0 0 12px rgba(255, 49, 247, 0.06);
+    clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  }
+
+  .mobile-summary-chip label {
+    display: block;
+    color: #00e5ff;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+  }
+
+  .mobile-summary-chip strong {
+    display: block;
+    margin-top: 3px;
+    color: #ffffff;
+    font-size: clamp(0.92rem, 4vw, 1.2rem);
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+  }
+
+  .control-hint {
+    display: none;
+  }
+
+  .mission-toast,
+  .near-miss,
+  .surge-break,
+  .hyper-banner,
+  .zone-label {
+    max-width: calc(100vw - 24px);
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: clamp(0.82rem, 3.2vw, 1rem);
+  }
+
+  .hyper-banner {
+    top: calc(max(10px, env(safe-area-inset-top)) + 86px);
+  }
+
+  .zone-label {
+    top: calc(max(10px, env(safe-area-inset-top)) + 126px);
+  }
+
+  .near-miss {
+    top: calc(max(10px, env(safe-area-inset-top)) + 164px);
+  }
+
+  .surge-break {
+    top: calc(max(10px, env(safe-area-inset-top)) + 198px);
+  }
+
+  .mission-toast {
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + 96px);
+    top: auto;
+  }
+
+  .center-panel {
+    width: min(86vw, 360px);
+    padding: 18px 16px;
+  }
+
+  .start-prompt,
+  .center-panel h1 {
+    font-size: clamp(2rem, 10vw, 3.25rem);
+  }
+
+  .start-subtitle,
+  .center-panel p {
+    font-size: 0.72rem;
+  }
+
+  .mobile-controls {
+    display: grid;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    gap: 10px;
+    grid-template-columns: minmax(60px, 1fr) minmax(96px, 1.2fr) minmax(60px, 1fr);
+  }
+
+  .mobile-controls button {
+    min-height: 58px;
+    font-size: 1.15rem;
+  }
+
+  .mobile-controls .mobile-boost {
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 620px), (max-height: 700px) and (pointer: coarse) {
+  .mobile-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-left {
+    width: min(48vw, 190px);
+  }
+
+  .brand span {
+    font-size: clamp(1.2rem, 8vw, 1.7rem);
+  }
+
+  .hud-left .hud-block {
+    padding: 10px 11px 11px;
+  }
+
+  .hud-block output {
+    font-size: clamp(1.35rem, 7vw, 2rem);
+  }
+
+  .hud-block.compact output {
+    font-size: clamp(0.98rem, 5vw, 1.3rem);
+  }
 }
 
 .hyper-banner,

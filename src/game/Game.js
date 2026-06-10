@@ -111,6 +111,7 @@ export class Game {
 
     this._setupScene();
     this._setupWorld();
+    this._resize();
     this._bindEvents();
     this.ui.update(this.stats);
     this.ui.setState(this.state, this.stats);
@@ -130,6 +131,7 @@ export class Game {
     // PerspectiveCamera defines the view frustum. Three.js projects visible 3D geometry
     // through this camera; clipping and viewport/screen mapping are handled by WebGLRenderer.
     this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 160);
+    this.baseCameraFov = 62;
     this.camera.position.set(0, 1.06, 10.2);
     this.camera.lookAt(0, -1.7, -18);
 
@@ -140,7 +142,7 @@ export class Game {
       antialias: true,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this._isCompactViewport() ? 1.5 : 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1238,12 +1240,25 @@ export class Game {
   _resize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
+    const compact = this._isCompactViewport();
+    const portrait = height > width;
+    const targetFov = compact ? (portrait ? 70 : 66) : this.baseCameraFov;
+    const targetY = compact && portrait ? 1.0 : 1.06;
+    const targetZ = compact && portrait ? 10.8 : 10.2;
+
     this.camera.aspect = width / height;
+    this.camera.fov = targetFov;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.camera.position.set(0, targetY, targetZ);
+    this.camera.lookAt(0, -1.7, -18);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
     this.renderer.setSize(width, height);
     this.composer.setSize(width, height);
     this.ssaoPass?.setSize(width, height);
     this.bloomPass.setSize(width, height);
+  }
+
+  _isCompactViewport() {
+    return window.matchMedia?.('(max-width: 920px), (hover: none) and (pointer: coarse)')?.matches ?? false;
   }
 }

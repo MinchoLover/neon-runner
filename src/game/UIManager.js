@@ -25,6 +25,30 @@ export class UIManager {
           <output data-ui="best">0</output>
         </div>
       </div>
+      <div class="mobile-summary" data-ui="mobileSummary">
+        <div class="mobile-summary-brand">
+          <span>SOLAR RUNNER</span>
+          <small>OVERDRIVE</small>
+        </div>
+        <div class="mobile-summary-grid">
+          <div class="mobile-summary-chip">
+            <label>SCORE</label>
+            <strong data-ui="mobileScore">0</strong>
+          </div>
+          <div class="mobile-summary-chip">
+            <label>SPEED</label>
+            <strong data-ui="mobileSpeed">0</strong>
+          </div>
+          <div class="mobile-summary-chip">
+            <label>BOOST</label>
+            <strong data-ui="mobileBoost">READY</strong>
+          </div>
+          <div class="mobile-summary-chip">
+            <label>SHIELD</label>
+            <strong data-ui="mobileShield">0</strong>
+          </div>
+        </div>
+      </div>
       <div class="hud hud-right">
         <div class="hud-block">
           <label>SPEED</label>
@@ -99,6 +123,11 @@ export class UIManager {
     this.wave = root.querySelector('[data-ui="wave"]');
     this.cores = root.querySelector('[data-ui="cores"]');
     this.best = root.querySelector('[data-ui="best"]');
+    this.mobileSummary = root.querySelector('[data-ui="mobileSummary"]');
+    this.mobileScore = root.querySelector('[data-ui="mobileScore"]');
+    this.mobileSpeed = root.querySelector('[data-ui="mobileSpeed"]');
+    this.mobileBoost = root.querySelector('[data-ui="mobileBoost"]');
+    this.mobileShield = root.querySelector('[data-ui="mobileShield"]');
     this.boost = root.querySelector('[data-ui="boost"]');
     this.shield = root.querySelector('[data-ui="shield"]');
     this.shieldBlock = root.querySelector('[data-ui="shieldBlock"]');
@@ -245,6 +274,14 @@ export class UIManager {
     this._setOutput('wave', this.wave, this._formatWave(stats.wave));
     this._setText('cores', this.cores, `CORES ${stats.solarCores ?? 0}`);
     this._setOutput('best', this.best, this.bestScore.toLocaleString('en-US'));
+    this._setText('mobileScore', this.mobileScore, Math.floor(stats.score).toLocaleString('en-US'));
+    this._setText('mobileSpeed', this.mobileSpeed, Math.floor(stats.speed * 7.2).toLocaleString('en-US'));
+    this._setText(
+      'mobileBoost',
+      this.mobileBoost,
+      stats.missionVisual?.focus?.noBoost ? 'HOLD' : stats.boostReady ? 'READY' : `${Math.ceil(stats.boostCooldown * 10) / 10}s`,
+    );
+    this._setText('mobileShield', this.mobileShield, `${stats.shield}/${stats.maxShield}`);
     this._setOutput(
       'boost',
       this.boost,
