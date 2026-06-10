@@ -43,6 +43,7 @@ export class Player {
     this.fallbackMeshes = [];
     this.loadedMaterials = [];
     this.modelLoaded = false;
+    this.deviceScale = 1;
 
     this.group.add(this.visualRoot);
     this.visualRoot.position.y = 0.82;
@@ -65,6 +66,14 @@ export class Player {
     this.modelRoot.visible = false;
 
     this.reset();
+  }
+
+  setDeviceScale(scale = 1) {
+    const nextScale = THREE.MathUtils.clamp(scale, 0.8, 1.1);
+    if (this.deviceScale === nextScale) return;
+    this.deviceScale = nextScale;
+    this.group.scale.setScalar(nextScale);
+    this.updateHitBox();
   }
 
   _addFallback(object) {
@@ -532,6 +541,9 @@ export class Player {
   }
 
   updateHitBox() {
-    this.hitBox.setFromCenterAndSize(this.group.position, new THREE.Vector3(0.82, 0.58, 1.18));
+    this.hitBox.setFromCenterAndSize(
+      this.group.position,
+      new THREE.Vector3(0.82, 0.58, 1.18).multiplyScalar(this.deviceScale),
+    );
   }
 }

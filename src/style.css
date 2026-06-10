@@ -2269,6 +2269,10 @@ kbd {
     min-height: 110px;
   }
 
+  .mission-block {
+    display: none;
+  }
+
   [data-state="ready"] .center-panel {
     top: 44%;
     bottom: auto;
@@ -2283,5 +2287,11 @@ kbd {
   [data-state="ready"] .center-panel::after {
     font-size: clamp(0.9rem, 5vw, 1.5rem);
     letter-spacing: 0.12em;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-width: 760px) {
+  .mission-block {
+    display: none;
   }
 }

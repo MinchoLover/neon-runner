@@ -1256,6 +1256,7 @@ export class Game {
     this.composer.setSize(width, height);
     this.ssaoPass?.setSize(width, height);
     this.bloomPass.setSize(width, height);
+    this.player?.setDeviceScale(compact ? 0.9 : 1);
   }
 
   _isCompactViewport() {
