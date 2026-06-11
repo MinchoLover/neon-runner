@@ -111,11 +111,12 @@ export class ParticleManager {
     this._trim();
   }
 
-  boostTrail(position, hyper = false, boostFactor = 0, delta = 1 / 60) {
-    const emissionRate = hyper ? 128 : boostFactor > 0 ? 96 : 48;
+  boostTrail(position, hyper = false, boostFactor = 0, delta = 1 / 60, quality = 1) {
+    const qualityScale = THREE.MathUtils.clamp(quality, 0.35, 1);
+    const emissionRate = (hyper ? 128 : boostFactor > 0 ? 96 : 48) * qualityScale;
     this.boostEmission += emissionRate * delta;
 
-    const count = Math.min(Math.floor(this.boostEmission), hyper ? 7 : 5);
+    const count = Math.min(Math.floor(this.boostEmission), Math.max(1, Math.round((hyper ? 7 : 5) * qualityScale)));
     this.boostEmission -= count;
 
     for (let i = 0; i < count; i += 1) {

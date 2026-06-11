@@ -114,6 +114,7 @@ export class Game {
     this.missionManager = new MissionManager();
     this.stats.missions = this.missionManager.reset(this.stats);
     this.compactViewport = this._isCompactViewport();
+    this.lowFxMode = this.compactViewport;
 
     this._setupScene();
     this._setupWorld();
@@ -147,10 +148,10 @@ export class Game {
     // through EffectComposer so bloom can be applied as a post-processing pass.
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true,
+      antialias: !this.compactViewport,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.compactViewport ? 1.5 : 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.compactViewport ? 1.25 : 1.75));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -177,6 +178,7 @@ export class Game {
     this.ssaoPass = ssaoPass;
     this.ssaoPass.enabled = !this.compactViewport;
     this.rgbShiftPass = rgbShiftPass;
+    this.rgbShiftPass.enabled = false;
     this.bloomPass = bloomPass;
     this.baseBloomStrength = bloomPass.strength;
     this.baseBloomRadius = bloomPass.radius;
@@ -770,7 +772,7 @@ export class Game {
       now,
     );
     if (boostFactor || this.stats.hyperActive) {
-      this.particles.boostTrail(this.player.group.position, this.stats.hyperActive, boostFactor, delta);
+      this.particles.boostTrail(this.player.group.position, this.stats.hyperActive, boostFactor, delta, this.lowFxMode ? 0.72 : 1);
     }
     this._emitAfterimage(delta, boostFactor, this.stats.hyperActive ? 1 : 0);
     this.obstacles.update(delta, this.stats.speed, this.elapsed, {
@@ -1369,6 +1371,7 @@ export class Game {
       let shiftAmount = 0;
       if (this.stats.hyperActive) shiftAmount += 0.003;
       if (this.hitFlashTime > 0) shiftAmount += 0.008 * (this.hitFlashTime / 0.22);
+      this.rgbShiftPass.enabled = shiftAmount > 0.0001;
 
       this.rgbShiftPass.uniforms['amount'].value = THREE.MathUtils.damp(
         this.rgbShiftPass.uniforms['amount'].value,
@@ -1395,12 +1398,13 @@ export class Game {
     this.camera.updateProjectionMatrix();
     this.camera.position.set(0, targetY, targetZ);
     this.camera.lookAt(0, -1.7, -18);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, compact ? 1.25 : 1.75));
     this.renderer.setSize(width, height);
     this.composer.setSize(width, height);
     this.ssaoPass?.setSize(width, height);
     this.bloomPass.setSize(width, height);
     if (this.ssaoPass) this.ssaoPass.enabled = !compact;
+    this.lowFxMode = compact;
     this.ui?.setCompactMode(compact);
     this.player?.setDeviceScale(compact ? 0.84 : 1);
   }
