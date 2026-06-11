@@ -724,7 +724,7 @@ export class Tunnel {
     if (this.solarRayMaterial) this.solarRayMaterial.color.setHex(palette.secondary ?? COLORS.solarGold);
   }
 
-  update(delta, speed, hyper = 0, wave = null, boost = 0) {
+  update(delta, speed, hyper = 0, wave = null, boost = 0, now = performance.now()) {
     if (wave) this.waveState = wave;
     this.group.rotation.z = THREE.MathUtils.damp(this.group.rotation.z, 0, 6, delta);
     const movement = speed * delta;
@@ -740,12 +740,12 @@ export class Tunnel {
     }
 
     for (const rail of this.laneMarkers) {
-      rail.material.opacity = 0.68 + Math.sin(performance.now() * 0.004 + rail.position.x) * 0.04;
+      rail.material.opacity = 0.68 + Math.sin(now * 0.004 + rail.position.x) * 0.04;
     }
 
     for (const guide of this.guideRails) {
       const baseOpacity = guide.material.userData.baseOpacity ?? 0.28;
-      guide.material.opacity = baseOpacity + Math.sin(performance.now() * 0.0035 + guide.position.x) * 0.035;
+      guide.material.opacity = baseOpacity + Math.sin(now * 0.0035 + guide.position.x) * 0.035;
     }
 
     for (const dash of this.railDashes) {
@@ -786,7 +786,7 @@ export class Tunnel {
 
     if (this.solarCoreGroup) {
       const targetIntensity = hyper > 0 ? SOLAR_CORE_SURGE_INTENSITY : SOLAR_CORE_BASE_INTENSITY;
-      const pulse = Math.sin(performance.now() * 0.005) * 0.04;
+      const pulse = Math.sin(now * 0.005) * 0.04;
       this.solarCoreMaterial.opacity = THREE.MathUtils.damp(this.solarCoreMaterial.opacity, Math.min(1, targetIntensity + 0.34), 3, delta);
       this.solarInnerMaterial.opacity = THREE.MathUtils.damp(this.solarInnerMaterial.opacity, 0.48 + targetIntensity * 0.18 + pulse, 3, delta);
       this.solarMidMaterial.opacity = THREE.MathUtils.damp(this.solarMidMaterial.opacity, 0.16 + targetIntensity * 0.12 + pulse * 0.55, 3, delta);
@@ -796,7 +796,7 @@ export class Tunnel {
       this.solarRayMaterial.opacity = THREE.MathUtils.damp(this.solarRayMaterial.opacity, 0.12 + targetIntensity * 0.12, 3, delta);
 
       const pulseScale = hyper > 0
-        ? 1.12 + Math.sin(performance.now() * 0.02) * 0.045
+        ? 1.12 + Math.sin(now * 0.02) * 0.045
         : 1 + pulse * 0.25 + boost * 0.035;
       this.solarCoreGroup.scale.setScalar(THREE.MathUtils.damp(this.solarCoreGroup.scale.x, pulseScale, 4, delta));
       this.solarHalo.rotation.z += delta * 0.06;

@@ -454,12 +454,13 @@ export class Player {
     hyperActive = false,
     combo = 0,
     hyperCharge = 0,
+    now = performance.now(),
   ) {
     this.group.position.x = THREE.MathUtils.damp(this.group.position.x, this.targetPosition.x, 10, delta);
     this.group.position.y = THREE.MathUtils.damp(this.group.position.y, this.targetPosition.y, 10, delta);
     this.group.position.z = THREE.MathUtils.damp(this.group.position.z, this.targetPosition.z, 8, delta);
 
-    const hover = Math.sin(performance.now() * 0.006) * 0.035;
+    const hover = Math.sin(now * 0.006) * 0.035;
     this.group.position.y += hover;
 
     this.laneMoveImpulse = THREE.MathUtils.damp(this.laneMoveImpulse, 0, 10, delta);
@@ -472,7 +473,7 @@ export class Player {
     const comboFactor = Math.min(combo / 10, 1);
     const chargeFactor = THREE.MathUtils.clamp(hyperCharge / 100, 0, 1);
     const visualEnergy = hyperActive ? 1 : Math.max(comboFactor * 0.35, (chargeFactor - 0.5) * 2);
-    const readyPulse = chargeFactor >= 0.9 ? 0.5 + Math.sin(performance.now() * 0.018) * 0.5 : 0;
+    const readyPulse = chargeFactor >= 0.9 ? 0.5 + Math.sin(now * 0.018) * 0.5 : 0;
 
     this._updateReferenceShellEnergy(boostFactor, visualEnergy, readyPulse, hyperActive, hitFlashTime);
     this._updateEngineGlow(boostFactor, hyperActive, readyPulse);

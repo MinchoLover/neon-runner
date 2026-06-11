@@ -322,7 +322,7 @@ export class ObstacleManager {
     this.solarTrimMaterial.emissive.setHex(READABILITY_COLORS.blocker);
   }
 
-  update(delta, speed, elapsed, callbacks) {
+  update(delta, speed, elapsed, callbacks, now = performance.now()) {
     const wave = this._waveForElapsed(elapsed);
     if (wave.name !== this.currentWave) {
       this.currentWave = wave.name;
@@ -395,8 +395,8 @@ export class ObstacleManager {
       }
     }
 
-    this._updateSolarCores(delta, speed, callbacks);
-    this._updateShieldPickups(delta, speed, elapsed, callbacks);
+    this._updateSolarCores(delta, speed, callbacks, now);
+    this._updateShieldPickups(delta, speed, elapsed, callbacks, now);
   }
 
   _updateOpeningSequence(elapsed, callbacks) {
@@ -486,14 +486,14 @@ export class ObstacleManager {
     this.patternIndex += 1;
   }
 
-  _updateSolarCores(delta, speed, callbacks) {
+  _updateSolarCores(delta, speed, callbacks, now) {
     for (let i = this.solarCores.length - 1; i >= 0; i -= 1) {
       const core = this.solarCores[i];
       core.group.position.z += speed * delta;
       core.group.rotation.z += core.spinSpeed * delta;
       core.orbit.rotation.x += core.spinSpeed * 0.45 * delta;
       core.orbit.rotation.y += core.spinSpeed * 0.72 * delta;
-      const pulse = 1 + Math.sin(performance.now() * 0.012 + core.phase) * 0.09;
+      const pulse = 1 + Math.sin(now * 0.012 + core.phase) * 0.09;
       core.glow.scale.setScalar(pulse);
       core.materials[1].opacity = 0.46 + (pulse - 1) * 1.4;
 
@@ -516,14 +516,14 @@ export class ObstacleManager {
     }
   }
 
-  _updateShieldPickups(delta, speed, elapsed, callbacks) {
+  _updateShieldPickups(delta, speed, elapsed, callbacks, now) {
     for (let i = this.shieldPickups.length - 1; i >= 0; i -= 1) {
       const pickup = this.shieldPickups[i];
       pickup.group.position.z += speed * delta;
       pickup.group.rotation.y += pickup.spinSpeed * delta;
       pickup.ring.rotation.z += pickup.spinSpeed * 0.5 * delta;
       pickup.halo.rotation.y += pickup.spinSpeed * 0.25 * delta;
-      const pulse = 1 + Math.sin(performance.now() * 0.014 + pickup.phase) * 0.08;
+      const pulse = 1 + Math.sin(now * 0.014 + pickup.phase) * 0.08;
       pickup.glow.scale.setScalar(pulse);
       pickup.core.scale.setScalar(0.92 + pulse * 0.1);
       pickup.materials[0].opacity = 0.76 + (pulse - 1) * 0.5;

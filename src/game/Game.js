@@ -109,10 +109,11 @@ export class Game {
     this.tutorialCues = new Set();
     this.missionManager = new MissionManager();
     this.stats.missions = this.missionManager.reset(this.stats);
+    this.compactViewport = this._isCompactViewport();
 
     this._setupScene();
     this._setupWorld();
-    this.ui.setCompactMode(this._isCompactViewport());
+    this.ui.setCompactMode(this.compactViewport);
     this._resize();
     this._bindEvents();
     this.ui.update(this.stats);
@@ -144,7 +145,7 @@ export class Game {
       antialias: true,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this._isCompactViewport() ? 1.5 : 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.compactViewport ? 1.5 : 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -169,7 +170,7 @@ export class Game {
     rgbShiftPass.uniforms.amount.value = 0;
     this.composer.addPass(rgbShiftPass);
     this.ssaoPass = ssaoPass;
-    this.ssaoPass.enabled = !this._isCompactViewport();
+    this.ssaoPass.enabled = !this.compactViewport;
     this.rgbShiftPass = rgbShiftPass;
     this.bloomPass = bloomPass;
     this.baseBloomStrength = bloomPass.strength;
@@ -579,7 +580,8 @@ export class Game {
   }
 
   _tick(timestamp) {
-    this.timer.update(timestamp);
+    const frameNow = timestamp ?? performance.now();
+    this.timer.update(frameNow);
     const rawDelta = Math.min(this.timer.getDelta(), 0.033);
 
     this.hitstopTimer = Math.max((this.hitstopTimer || 0) - rawDelta, 0);
@@ -587,32 +589,32 @@ export class Game {
 
     this.invincibleTime = Math.max(this.invincibleTime - delta, 0);
     this.hitFlashTime = Math.max(this.hitFlashTime - delta, 0);
-    if (this.state === 'playing') this._updatePlaying(delta);
-    else if (this.state === 'countdown') this._updateCountdown(delta);
-    else if (this.state === 'crashing') this._updateCrashing(delta);
-    else if (this.state === 'paused') this._updatePaused(delta);
-    else this._updateAttract(delta);
+    if (this.state === 'playing') this._updatePlaying(delta, frameNow);
+    else if (this.state === 'countdown') this._updateCountdown(delta, frameNow);
+    else if (this.state === 'crashing') this._updateCrashing(delta, frameNow);
+    else if (this.state === 'paused') this._updatePaused(delta, frameNow);
+    else this._updateAttract(delta, frameNow);
 
     this.particles.update(delta);
     this.physics.update(delta);
     this._updateAfterimages(delta);
     this._updateCamera(delta);
-    this._updateBloomPulse();
+    this._updateBloomPulse(frameNow);
     this.composer.render();
   }
 
-  _updateAttract(delta) {
+  _updateAttract(delta, now) {
     this._syncPalette(delta);
-    this.tunnel.update(delta, GAME.startSpeed * 0.65);
-    this.player.update(delta, 0, this.invincibleTime, this.hitFlashTime, false, 0);
+    this.tunnel.update(delta, GAME.startSpeed * 0.65, 0, null, 0, now);
+    this.player.update(delta, 0, this.invincibleTime, this.hitFlashTime, false, 0, 0, now);
     this.player.group.rotation.y += delta * 0.15;
   }
 
-  _updateCountdown(delta) {
+  _updateCountdown(delta, now) {
     this.countdownTimer = Math.max(this.countdownTimer - delta, 0);
     this._syncPalette(delta);
-    this.tunnel.update(delta, GAME.startSpeed * 0.78);
-    this.player.update(delta, 0, 0, 0, false, 0);
+    this.tunnel.update(delta, GAME.startSpeed * 0.78, 0, null, 0, now);
+    this.player.update(delta, 0, 0, 0, false, 0, 0, now);
 
     if (this.countdownTimer > 1.5) this._setCountdownLabel('3');
     else if (this.countdownTimer > 1) this._setCountdownLabel('2');
@@ -637,7 +639,7 @@ export class Game {
     this.audio.play(label === 'GO' ? 'go' : 'countdown');
   }
 
-  _updatePlaying(delta) {
+  _updatePlaying(delta, now) {
     this.elapsed += delta;
     this.boostTimer = Math.max(this.boostTimer - delta, 0);
     this.boostCooldown = Math.max(this.boostCooldown - delta, 0);
@@ -657,7 +659,7 @@ export class Game {
     }
     const boostFactor = this.boostTimer > 0 ? 1 : 0;
     const hyperFactor = this.stats.hyperActive ? 1 : 0;
-    const speedRamp = this._isCompactViewport() ? 0.72 : 0.58;
+    const speedRamp = this.compactViewport ? 0.72 : 0.58;
     const baseSpeed = Math.min(GAME.startSpeed + this.elapsed * speedRamp, GAME.maxSpeed);
     this.stats.speed = baseSpeed + boostFactor * GAME.boostSpeed + hyperFactor * 4;
     this.stats.distance += this.stats.speed * delta * 1.35;
@@ -675,6 +677,7 @@ export class Game {
       this.stats.hyperActive ? 1 : 0,
       this.stats.wave,
       this.boostTimer > 0 ? 1 : 0,
+      now,
     );
     this.player.update(
       delta,
@@ -684,6 +687,7 @@ export class Game {
       this.stats.hyperActive,
       this.stats.combo,
       this.stats.hyperCharge,
+      now,
     );
     if (boostFactor || this.stats.hyperActive) {
       this.particles.boostTrail(this.player.group.position, this.stats.hyperActive, boostFactor, delta);
@@ -704,15 +708,15 @@ export class Game {
       onSolarCore: (position, core) => this._handleSolarCore(position, core),
       onShieldPickup: (position, pickup) => this._handleShieldPickup(position, pickup),
       onSolarCoreCue: (pattern) => this._handleSolarCoreCue(pattern),
-    });
+    }, now);
 
     this._syncMissions(delta);
     this.ui.update(this.stats);
   }
 
-  _updatePaused(delta) {
+  _updatePaused(delta, now) {
     this._syncPalette(delta);
-    this.tunnel.update(delta, GAME.startSpeed * 0.25, 0);
+    this.tunnel.update(delta, GAME.startSpeed * 0.25, 0, null, 0, now);
     this.player.update(
       delta,
       0,
@@ -721,15 +725,16 @@ export class Game {
       this.stats.hyperActive,
       this.stats.combo,
       this.stats.hyperCharge,
+      now,
     );
   }
 
-  _updateCrashing(delta) {
+  _updateCrashing(delta, now) {
     this.gameoverTimer = Math.max(this.gameoverTimer - delta, 0);
     this.crashSpeed = THREE.MathUtils.damp(this.crashSpeed, 0, 5, delta);
     this._syncPalette(delta);
-    this.tunnel.update(delta, this.crashSpeed);
-    this.player.update(delta, 0, 0, this.hitFlashTime, false, this.stats.combo, this.stats.hyperCharge);
+    this.tunnel.update(delta, this.crashSpeed, 0, null, 0, now);
+    this.player.update(delta, 0, 0, this.hitFlashTime, false, this.stats.combo, this.stats.hyperCharge, now);
     this.stats.speed = this.crashSpeed;
     this.ui.update(this.stats);
 
@@ -1218,7 +1223,7 @@ export class Game {
     this.camera.rotation.z = THREE.MathUtils.damp(this.camera.rotation.z, targetRoll, 8, delta);
   }
 
-  _updateBloomPulse() {
+  _updateBloomPulse(now) {
     if (!this.bloomPass) return;
     const pulse = this.startPulseTimer > 0 ? (this.startPulseTimer / 0.4) * 0.32 : 0;
     const boost = this.boostTimer > 0 ? 0.1 : 0;
@@ -1248,12 +1253,12 @@ export class Game {
       if (this.hitFlashTime > 0) shiftAmount += 0.008 * (this.hitFlashTime / 0.22);
 
       this.rgbShiftPass.uniforms['amount'].value = THREE.MathUtils.damp(
-          this.rgbShiftPass.uniforms['amount'].value,
-          shiftAmount,
-          10,
-          0.016
+        this.rgbShiftPass.uniforms['amount'].value,
+        shiftAmount,
+        10,
+        0.016,
       );
-      this.rgbShiftPass.uniforms['angle'].value = Math.sin(performance.now() * 0.01) * Math.PI;
+      this.rgbShiftPass.uniforms['angle'].value = Math.sin(now * 0.01) * Math.PI;
     }
   }
 
@@ -1261,6 +1266,7 @@ export class Game {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const compact = this._isCompactViewport();
+    this.compactViewport = compact;
     const portrait = height > width;
     const targetFov = compact ? (portrait ? 70 : 66) : this.baseCameraFov;
     const targetY = compact && portrait ? 1.0 : 1.06;
