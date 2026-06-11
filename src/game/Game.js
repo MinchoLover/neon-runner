@@ -118,6 +118,7 @@ export class Game {
     this._bindEvents();
     this.ui.update(this.stats);
     this.ui.setState(this.state, this.stats);
+    this.ui.hideSurgeCutin?.();
   }
 
   start() {
@@ -1069,6 +1070,7 @@ export class Game {
     this.particles.boostBurst(this.player.group.position, 36);
     this._burstAfterimages(8, true);
     this.audio.playHyperStart();
+    this.ui.showSurgeCutin?.('SOLAR SURGE', 'BREAK THROUGH', 'RAM THROUGH OBSTACLES');
     this.ui.showStatus('SOLAR SURGE: RAM THROUGH');
   }
 

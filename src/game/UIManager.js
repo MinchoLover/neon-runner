@@ -89,6 +89,12 @@ export class UIManager {
         </div>
       </div>
       <div class="hyper-banner" data-ui="hyper">SOLAR SURGE</div>
+      <div class="surge-cutin" data-ui="surgeCutin" aria-hidden="true">
+        <div class="surge-cutin-frame" aria-hidden="true"></div>
+        <span data-ui="surgeCutinKicker">SOLAR SURGE</span>
+        <strong data-ui="surgeCutinTitle">BREAK THROUGH</strong>
+        <small data-ui="surgeCutinSub">RAM THROUGH OBSTACLES</small>
+      </div>
       <div class="launch-sequence" data-ui="launchSequence" aria-hidden="true">
         <span data-ui="launchPhase">ENGINE SYNC</span>
         <strong data-ui="launchLabel">IGNITION</strong>
@@ -139,6 +145,11 @@ export class UIManager {
     this.panel = root.querySelector('[data-ui="panel"]');
     this.hitFlash = root.querySelector('[data-ui="hitFlash"]');
     this.hyper = root.querySelector('[data-ui="hyper"]');
+    this.surgeCutin = root.querySelector('[data-ui="surgeCutin"]');
+    this.surgeCutinKicker = root.querySelector('[data-ui="surgeCutinKicker"]');
+    this.surgeCutinTitle = root.querySelector('[data-ui="surgeCutinTitle"]');
+    this.surgeCutinSub = root.querySelector('[data-ui="surgeCutinSub"]');
+    this.surgeCutinTimer = null;
     this.launchSequence = root.querySelector('[data-ui="launchSequence"]');
     this.launchPhase = root.querySelector('[data-ui="launchPhase"]');
     this.launchLabel = root.querySelector('[data-ui="launchLabel"]');
@@ -200,6 +211,31 @@ export class UIManager {
     this.hitFlashTimer = window.setTimeout(() => {
       this.hitFlash.classList.remove('active', 'gameover-flash');
     }, 500);
+  }
+
+
+  showSurgeCutin(kicker = 'SOLAR SURGE', title = 'BREAK THROUGH', subtitle = 'RAM THROUGH OBSTACLES') {
+    if (!this.surgeCutin) return;
+
+    window.clearTimeout(this.surgeCutinTimer);
+
+    if (this.surgeCutinKicker) this.surgeCutinKicker.textContent = kicker;
+    if (this.surgeCutinTitle) this.surgeCutinTitle.textContent = title;
+    if (this.surgeCutinSub) this.surgeCutinSub.textContent = subtitle;
+
+    this.surgeCutin.classList.remove('active');
+    void this.surgeCutin.offsetWidth;
+    this.surgeCutin.classList.add('active');
+
+    this.surgeCutinTimer = window.setTimeout(() => {
+      this.surgeCutin?.classList.remove('active');
+    }, 980);
+  }
+
+  hideSurgeCutin() {
+    if (!this.surgeCutin) return;
+    window.clearTimeout(this.surgeCutinTimer);
+    this.surgeCutin.classList.remove('active');
   }
 
   showNearMiss(chain = 1, hyperGain = 0) {

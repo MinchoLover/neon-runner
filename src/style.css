@@ -2478,3 +2478,284 @@ kbd {
   }
 }
 
+
+
+/* Solar Surge cut-in */
+.surge-cutin {
+  position: fixed;
+  z-index: 8;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  overflow: hidden;
+  transform: scale(1.04);
+}
+
+.surge-cutin::before,
+.surge-cutin::after {
+  content: "";
+  position: absolute;
+  left: -12vw;
+  right: -12vw;
+  height: 24vh;
+  opacity: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 214, 96, 0.12), rgba(0, 229, 255, 0.1), transparent),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  filter: blur(1px);
+  transform: skewY(-8deg) translateX(-18%);
+}
+
+.surge-cutin::before {
+  top: 28%;
+}
+
+.surge-cutin::after {
+  bottom: 26%;
+  transform: skewY(-8deg) translateX(18%);
+}
+
+.surge-cutin-frame {
+  position: absolute;
+  width: min(760px, 90vw);
+  height: clamp(150px, 26vh, 260px);
+  border-top: 2px solid rgba(255, 214, 96, 0.72);
+  border-bottom: 2px solid rgba(0, 229, 255, 0.72);
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 214, 96, 0.08), rgba(255, 49, 247, 0.09), transparent),
+    radial-gradient(circle at 50% 50%, rgba(255, 214, 96, 0.18), transparent 62%);
+  box-shadow:
+    0 0 24px rgba(255, 214, 96, 0.3),
+    0 0 42px rgba(0, 229, 255, 0.18),
+    inset 0 0 32px rgba(255, 255, 255, 0.08);
+  clip-path: polygon(0 18px, 38px 0, calc(100% - 38px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 38px) 100%, 38px 100%, 0 calc(100% - 18px));
+  opacity: 0;
+}
+
+.surge-cutin span,
+.surge-cutin strong,
+.surge-cutin small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  text-align: center;
+  text-transform: uppercase;
+  transform: skewX(-8deg);
+}
+
+.surge-cutin span {
+  margin-bottom: 8px;
+  color: #5cf4ff;
+  font-size: clamp(0.8rem, 1.8vw, 1.2rem);
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-shadow:
+    0 0 12px rgba(0, 229, 255, 0.92),
+    0 0 22px rgba(255, 49, 247, 0.42);
+  opacity: 0;
+}
+
+.surge-cutin strong {
+  color: #fff6cf;
+  font-size: clamp(3.2rem, 11vw, 9rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.78;
+  letter-spacing: -0.08em;
+  text-shadow:
+    0 0 14px rgba(255, 255, 255, 0.95),
+    0 0 30px rgba(255, 214, 96, 0.98),
+    0 0 58px rgba(255, 138, 0, 0.7),
+    0 0 82px rgba(255, 49, 247, 0.45);
+  opacity: 0;
+}
+
+.surge-cutin small {
+  margin-top: 14px;
+  color: #ffffff;
+  font-size: clamp(0.82rem, 2vw, 1.25rem);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.9),
+    0 0 24px rgba(0, 229, 255, 0.72);
+  opacity: 0;
+}
+
+.surge-cutin.active {
+  animation: surge-cutin-shell 0.98s ease-out both;
+}
+
+.surge-cutin.active::before {
+  animation: surge-cutin-slice-left 0.78s ease-out both;
+}
+
+.surge-cutin.active::after {
+  animation: surge-cutin-slice-right 0.78s ease-out both;
+}
+
+.surge-cutin.active .surge-cutin-frame {
+  animation: surge-cutin-frame 0.92s ease-out both;
+}
+
+.surge-cutin.active span {
+  animation: surge-cutin-kicker 0.9s ease-out both;
+}
+
+.surge-cutin.active strong {
+  animation: surge-cutin-title 0.92s cubic-bezier(0.18, 0.92, 0.25, 1) both;
+}
+
+.surge-cutin.active small {
+  animation: surge-cutin-sub 0.86s ease-out both;
+}
+
+@keyframes surge-cutin-shell {
+  0% {
+    opacity: 0;
+    transform: scale(1.16);
+    background: rgba(255, 255, 255, 0);
+  }
+  8% {
+    opacity: 1;
+    background: rgba(255, 244, 205, 0.16);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1);
+    background: rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+    background: rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes surge-cutin-frame {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.18) skewX(-12deg);
+    filter: blur(4px);
+  }
+  18% {
+    opacity: 1;
+    transform: scaleX(1.08) skewX(-12deg);
+    filter: blur(0);
+  }
+  62% {
+    opacity: 0.92;
+    transform: scaleX(1) skewX(-12deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.18) skewX(-12deg);
+  }
+}
+
+@keyframes surge-cutin-kicker {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) skewX(-8deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) skewX(-8deg);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) skewX(-8deg);
+  }
+}
+
+@keyframes surge-cutin-title {
+  0% {
+    opacity: 0;
+    transform: translateX(-9vw) scale(0.7) skewX(-14deg);
+    filter: blur(8px);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(1vw) scale(1.13) skewX(-10deg);
+    filter: blur(0);
+  }
+  54% {
+    opacity: 1;
+    transform: translateX(0) scale(1) skewX(-8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(8vw) scale(1.08) skewX(-4deg);
+    filter: blur(3px);
+  }
+}
+
+@keyframes surge-cutin-sub {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) skewX(-8deg);
+  }
+  24% {
+    opacity: 0;
+  }
+  42% {
+    opacity: 1;
+    transform: translateY(0) skewX(-8deg);
+  }
+  76% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px) skewX(-8deg);
+  }
+}
+
+@keyframes surge-cutin-slice-left {
+  0% {
+    opacity: 0;
+    transform: skewY(-8deg) translateX(-40%);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: skewY(-8deg) translateX(32%);
+  }
+}
+
+@keyframes surge-cutin-slice-right {
+  0% {
+    opacity: 0;
+    transform: skewY(-8deg) translateX(40%);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: skewY(-8deg) translateX(-32%);
+  }
+}
+
+@media (max-width: 920px), (hover: none) and (pointer: coarse) {
+  .surge-cutin-frame {
+    width: min(560px, 92vw);
+    height: clamp(130px, 23vh, 210px);
+  }
+
+  .surge-cutin strong {
+    font-size: clamp(2.6rem, 15vw, 6.4rem);
+  }
+
+  .surge-cutin small {
+    font-size: clamp(0.72rem, 3vw, 1rem);
+  }
+}
+
