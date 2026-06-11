@@ -556,9 +556,9 @@ export class ObstacleManager {
     }
 
     if (this._maybeSpawnShieldPickup(elapsed, callbacks)) {
-      this.nextShieldPickupTime = elapsed + 16 + Math.random() * 8;
+      this.nextShieldPickupTime = elapsed + 20 + Math.random() * 10;
     } else {
-      this.nextShieldPickupTime = elapsed + 1.2;
+      this.nextShieldPickupTime = elapsed + 1.4;
     }
   }
 
@@ -753,34 +753,34 @@ export class ObstacleManager {
     const narrowBoost = (bias === 'fast' ? 0.08 : 0) + riskBoost + riftBoost;
 
     if (elapsed < 16) {
-      if (roll < 0.34) return 'single';
+      if (roll < 0.3) return 'single';
       return 'cube';
     }
 
     if (elapsed < 28) {
-      if (roll < 0.22) return 'single';
-      if (roll < 0.42 + barBoost) return 'bar';
-      if (roll < 0.56 + gateBoost) return 'gate';
+      if (roll < 0.18) return 'single';
+      if (roll < 0.46 + barBoost) return 'bar';
+      if (roll < 0.62 + gateBoost) return 'gate';
       return 'cube';
     }
 
     if (elapsed < 48) {
-      if (roll < 0.28 + barBoost) return 'bar';
-      if (roll < 0.48 + gateBoost) return 'gate';
-      if (roll < 0.64 + narrowBoost) return 'narrow';
+      if (roll < 0.34 + barBoost) return 'bar';
+      if (roll < 0.54 + gateBoost) return 'gate';
+      if (roll < 0.7 + narrowBoost) return 'narrow';
       return 'cube';
     }
 
-    if (roll < 0.32 + barBoost) return 'bar';
-    if (roll < 0.56 + narrowBoost) return 'narrow';
-    if (roll < 0.74 + gateBoost) return 'gate';
+    if (roll < 0.38 + barBoost) return 'bar';
+    if (roll < 0.64 + narrowBoost) return 'narrow';
+    if (roll < 0.82 + gateBoost) return 'gate';
     return 'cube';
   }
 
 
   _spawnInterval(elapsed) {
-    if (elapsed < 10) return 1.36;
-    if (elapsed < 22) return THREE.MathUtils.lerp(1.26, 1.0, (elapsed - 10) / 12);
+    if (elapsed < 10) return 1.28;
+    if (elapsed < 22) return THREE.MathUtils.lerp(1.18, 0.94, (elapsed - 10) / 12);
 
     const paletteBias = this.palette?.bias === 'fast' ? 0.06 : 0;
     const wave = this._waveForElapsed(elapsed);
@@ -796,10 +796,10 @@ export class ObstacleManager {
               : 0;
 
     if (elapsed < 48) {
-      return THREE.MathUtils.clamp(1.0 - (elapsed - 22) * 0.012 - paletteBias - waveBias, 0.74, 1.08);
+      return THREE.MathUtils.clamp(0.92 - (elapsed - 22) * 0.012 - paletteBias - waveBias, 0.7, 1.0);
     }
 
-    return THREE.MathUtils.clamp(0.82 - (elapsed - 48) * 0.0045 - paletteBias - waveBias, 0.62, 0.94);
+    return THREE.MathUtils.clamp(0.76 - (elapsed - 48) * 0.0045 - paletteBias - waveBias, 0.58, 0.88);
   }
 
 

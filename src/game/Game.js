@@ -728,7 +728,7 @@ export class Game {
     }
     const boostFactor = this.boostTimer > 0 ? 1 : 0;
     const hyperFactor = this.stats.hyperActive ? 1 : 0;
-    const speedRamp = this.compactViewport ? 0.72 : 0.58;
+    const speedRamp = this.compactViewport ? 0.78 : 0.62;
     const baseSpeed = Math.min(GAME.startSpeed + this.elapsed * speedRamp, GAME.maxSpeed);
     this.stats.speed = baseSpeed + boostFactor * GAME.boostSpeed + hyperFactor * 4;
     this.stats.distance += this.stats.speed * delta * 1.35;
