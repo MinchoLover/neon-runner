@@ -556,7 +556,7 @@ export class ObstacleManager {
     }
 
     if (this._maybeSpawnShieldPickup(elapsed, callbacks)) {
-      this.nextShieldPickupTime = elapsed + 11 + Math.random() * 7;
+      this.nextShieldPickupTime = elapsed + 16 + Math.random() * 8;
     } else {
       this.nextShieldPickupTime = elapsed + 1.2;
     }
@@ -779,8 +779,8 @@ export class ObstacleManager {
 
 
   _spawnInterval(elapsed) {
-    if (elapsed < 10) return 1.45;
-    if (elapsed < 22) return THREE.MathUtils.lerp(1.34, 1.08, (elapsed - 10) / 12);
+    if (elapsed < 10) return 1.36;
+    if (elapsed < 22) return THREE.MathUtils.lerp(1.26, 1.0, (elapsed - 10) / 12);
 
     const paletteBias = this.palette?.bias === 'fast' ? 0.06 : 0;
     const wave = this._waveForElapsed(elapsed);
@@ -796,10 +796,10 @@ export class ObstacleManager {
               : 0;
 
     if (elapsed < 48) {
-      return THREE.MathUtils.clamp(1.08 - (elapsed - 22) * 0.011 - paletteBias - waveBias, 0.78, 1.14);
+      return THREE.MathUtils.clamp(1.0 - (elapsed - 22) * 0.012 - paletteBias - waveBias, 0.74, 1.08);
     }
 
-    return THREE.MathUtils.clamp(0.9 - (elapsed - 48) * 0.004 - paletteBias - waveBias, 0.68, 0.98);
+    return THREE.MathUtils.clamp(0.82 - (elapsed - 48) * 0.0045 - paletteBias - waveBias, 0.62, 0.94);
   }
 
 
