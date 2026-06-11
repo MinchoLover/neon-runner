@@ -229,7 +229,7 @@ export class UIManager {
 
     this.surgeCutinTimer = window.setTimeout(() => {
       this.surgeCutin?.classList.remove('active');
-    }, 980);
+    }, 540);
   }
 
   hideSurgeCutin() {

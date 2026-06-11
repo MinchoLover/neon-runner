@@ -2759,3 +2759,121 @@ kbd {
   }
 }
 
+
+
+/* Solar Surge cut-in performance override */
+.surge-cutin {
+  position: fixed !important;
+  z-index: 8 !important;
+  inset: auto !important;
+  top: 22% !important;
+  left: 50% !important;
+  width: min(560px, 90vw) !important;
+  height: auto !important;
+  display: grid !important;
+  place-items: center !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  overflow: visible !important;
+  background: transparent !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  transform: translate(-50%, -50%) scale(0.96) !important;
+}
+
+.surge-cutin::before,
+.surge-cutin::after,
+.surge-cutin-frame {
+  display: none !important;
+  content: none !important;
+  animation: none !important;
+  filter: none !important;
+}
+
+.surge-cutin span,
+.surge-cutin strong,
+.surge-cutin small {
+  position: relative !important;
+  z-index: 1 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  animation: none !important;
+  transform: none !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+}
+
+.surge-cutin span {
+  margin-bottom: 5px !important;
+  color: #5cf4ff !important;
+  font-size: clamp(0.72rem, 1.5vw, 0.95rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.22em !important;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.72) !important;
+}
+
+.surge-cutin strong {
+  color: #fff6cf !important;
+  font-size: clamp(2.1rem, 7vw, 5.6rem) !important;
+  font-weight: 900 !important;
+  font-style: italic !important;
+  line-height: 0.84 !important;
+  letter-spacing: -0.07em !important;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.82),
+    0 0 24px rgba(255, 214, 96, 0.72),
+    0 0 36px rgba(255, 138, 0, 0.42) !important;
+}
+
+.surge-cutin small {
+  margin-top: 8px !important;
+  color: #ffffff !important;
+  font-size: clamp(0.68rem, 1.7vw, 0.95rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.14em !important;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.58) !important;
+}
+
+.surge-cutin.active {
+  animation: surge-cutin-lite 0.54s ease-out both !important;
+}
+
+.surge-cutin.active::before,
+.surge-cutin.active::after,
+.surge-cutin.active .surge-cutin-frame,
+.surge-cutin.active span,
+.surge-cutin.active strong,
+.surge-cutin.active small {
+  animation: none !important;
+}
+
+@keyframes surge-cutin-lite {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.74);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  58% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+@media (max-width: 920px), (hover: none) and (pointer: coarse) {
+  .surge-cutin {
+    top: 20% !important;
+    width: min(460px, 92vw) !important;
+  }
+
+  .surge-cutin strong {
+    font-size: clamp(2rem, 13vw, 4.8rem) !important;
+  }
+}
+
