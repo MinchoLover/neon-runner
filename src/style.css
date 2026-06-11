@@ -721,6 +721,29 @@ kbd {
   font-size: 1rem;
 }
 
+[data-primary-mode="burst"] .mobile-controls .mobile-boost {
+  border-color: rgba(0, 229, 255, 0.72);
+  color: #eaf7ff;
+}
+
+[data-primary-mode="wait"] .mobile-controls .mobile-boost {
+  border-color: rgba(151, 169, 185, 0.52);
+  color: rgba(234, 247, 255, 0.72);
+  background: linear-gradient(145deg, rgba(6, 16, 22, 0.88), rgba(16, 8, 20, 0.84));
+  box-shadow:
+    0 0 10px rgba(0, 229, 255, 0.08),
+    inset 0 0 12px rgba(255, 49, 247, 0.06);
+}
+
+[data-primary-mode="surge"] .mobile-controls .mobile-boost {
+  border-color: rgba(255, 183, 0, 0.92);
+  color: #fff1a8;
+  background: linear-gradient(145deg, rgba(36, 22, 2, 0.94), rgba(82, 44, 0, 0.9));
+  box-shadow:
+    0 0 18px rgba(255, 183, 0, 0.22),
+    inset 0 0 14px rgba(255, 210, 110, 0.14);
+}
+
 .mobile-controls button:disabled {
   opacity: 0.45;
 }
@@ -914,6 +937,12 @@ kbd {
 
   .mobile-controls .mobile-boost {
     font-size: 0.92rem;
+  }
+
+  .boost-prompt {
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 86px);
+    max-width: min(88vw, 360px);
+    text-align: center;
   }
 }
 
@@ -1645,6 +1674,40 @@ body {
   text-shadow: 0 0 15px rgba(67, 221, 255, 0.72);
 }
 
+.boost-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 88px;
+  z-index: 6;
+  pointer-events: none;
+  padding: 10px 16px;
+  border: 1px solid rgba(0, 229, 255, 0.46);
+  background: rgba(2, 12, 18, 0.76);
+  color: #8beaff;
+  font-size: clamp(0.82rem, 1.4vw, 1.05rem);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px) scale(0.98);
+  transition:
+    opacity 0.14s ease-out,
+    transform 0.14s ease-out;
+}
+
+.boost-prompt.active {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.boost-prompt[data-tone="surge"] {
+  border-color: rgba(255, 183, 0, 0.72);
+  color: #ffd36a;
+  background: rgba(18, 11, 2, 0.84);
+}
+
 [data-state="ready"] .center-panel {
   top: auto;
   bottom: 24px;
@@ -2292,6 +2355,12 @@ kbd {
     font-size: clamp(0.9rem, 5vw, 1.5rem);
     letter-spacing: 0.12em;
   }
+
+  .boost-prompt {
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 86px);
+    max-width: min(88vw, 360px);
+    text-align: center;
+  }
 }
 
 @media (hover: none) and (pointer: coarse) and (max-width: 760px) {
@@ -2876,4 +2945,3 @@ kbd {
     font-size: clamp(2rem, 13vw, 4.8rem) !important;
   }
 }
-

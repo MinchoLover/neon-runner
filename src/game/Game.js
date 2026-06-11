@@ -81,6 +81,10 @@ export class Game {
     this.hyperReadyTimer = 0;
     this.nearMissChain = 0;
     this.surgeBreakChain = 0;
+    this.boostPromptCooldown = 0;
+    this.lastBoostReadyState = true;
+    this.lastSurgeReadyState = false;
+    this.initialBoostPromptShown = false;
     this.lastLaneChange = null;
     this.invincibleTime = 0;
     this.hitFlashTime = 0;
@@ -495,6 +499,7 @@ export class Game {
 
   _tryBoost() {
     if (this.boostCooldown > 0) return;
+    this.ui.hideBoostPrompt?.();
     this.boostTimer = GAME.boostDuration;
     this.boostCooldown = GAME.boostCooldown;
     this.stats.boostsUsed += 1;
@@ -517,6 +522,10 @@ export class Game {
     this.hyperReadyTimer = 0;
     this.nearMissChain = 0;
     this.lastChainCallout = 0;
+    this.boostPromptCooldown = 0;
+    this.lastBoostReadyState = true;
+    this.lastSurgeReadyState = false;
+    this.initialBoostPromptShown = false;
     this.lastLaneChange = null;
     this.invincibleTime = 0;
     this.hitFlashTime = 0;
@@ -712,6 +721,7 @@ export class Game {
     this.elapsed += delta;
     this.boostTimer = Math.max(this.boostTimer - delta, 0);
     this.boostCooldown = Math.max(this.boostCooldown - delta, 0);
+    this.boostPromptCooldown = Math.max(this.boostPromptCooldown - delta, 0);
     this.hyperTimer = Math.max(this.hyperTimer - delta, 0);
     this.startPulseTimer = Math.max(this.startPulseTimer - delta, 0);
     this.missionPulseTimer = Math.max(this.missionPulseTimer - delta, 0);
@@ -737,6 +747,7 @@ export class Game {
     this.stats.boostReady = this.boostCooldown <= 0;
     this.stats.boostCooldown = this.boostCooldown;
     this.stats.maxCombo = Math.max(this.stats.maxCombo, this.stats.combo);
+    this._updateBoostGuidance();
 
     this._syncPalette(delta);
     this._updateRunCues();
@@ -976,6 +987,10 @@ export class Game {
       this._spawnAfterimage(this.stats.hyperActive ? 1.2 : 0.8, this.stats.hyperActive, 0.08);
       this.audio.play('warning');
     }
+
+    if (this.stats.boostReady && !this.stats.hyperReady && !this.stats.missionVisual?.focus?.noBoost) {
+      this._showBoostPrompt('TAP TO BURST', 'boost', 1.1, 500);
+    }
   }
 
   _handleSurgeChainStyle() {
@@ -1020,6 +1035,38 @@ export class Game {
     }
     this.tunnel.setWaveFeedback(wave);
     this.audio.play('zoneEnter');
+
+    if ((wave.name === 'pressure' || wave.name === 'risk' || wave.name === 'rift') && this.stats.boostReady && !this.stats.hyperReady && !this.stats.missionVisual?.focus?.noBoost) {
+      this._showBoostPrompt('BOOST READY', 'boost', 1.2, 520);
+    }
+  }
+
+  _showBoostPrompt(label, tone = 'boost', cooldown = 1.1, duration = 520, force = false) {
+    if (!this.ui || this.state !== 'playing') return;
+    if (this.boostPromptCooldown > 0 && !force) return;
+
+    this.ui.showBoostPrompt?.(label, tone, duration);
+    this.boostPromptCooldown = cooldown;
+    if (tone === 'surge') this.initialBoostPromptShown = true;
+  }
+
+  _updateBoostGuidance() {
+    if (this.state !== 'playing') return;
+
+    const boostReady = this.stats.boostReady && !this.stats.hyperReady;
+    const surgeReady = this.stats.hyperReady;
+
+    if (surgeReady && !this.lastSurgeReadyState) {
+      this._showBoostPrompt('SURGE READY - BREAK THROUGH', 'surge', 1.8, 760, true);
+    } else if (boostReady && !this.lastBoostReadyState && this.boostPromptCooldown <= 0 && !this.stats.missionVisual?.focus?.noBoost) {
+      this._showBoostPrompt('BOOST READY', 'boost', 1.25, 520);
+    } else if (!this.initialBoostPromptShown && boostReady && this.elapsed > 0.95 && this.boostPromptCooldown <= 0 && !this.stats.missionVisual?.focus?.noBoost) {
+      this._showBoostPrompt('TAP TO BURST', 'boost', 1.35, 500);
+      this.initialBoostPromptShown = true;
+    }
+
+    this.lastBoostReadyState = boostReady;
+    this.lastSurgeReadyState = surgeReady;
   }
 
   _addHyperCharge(amount) {
@@ -1044,7 +1091,7 @@ export class Game {
       this.hyperReadyTimer = HYPER_READY_PULSE_DURATION;
       this.startPulseTimer = Math.max(this.startPulseTimer, 0.22);
       this.shake = Math.max(this.shake, 0.05); // Subtle shake for ready
-      this.ui.showStatus('SOLAR SURGE READY');
+      this._showBoostPrompt('SURGE READY - BREAK THROUGH', 'surge', 1.8, 760, true);
       this.audio.playHyperReady();
     }
     return this.stats.hyperCharge - previousCharge;
@@ -1069,6 +1116,7 @@ export class Game {
     this.particles.riftBurst(this.player.group.position, 72);
     this.particles.boostBurst(this.player.group.position, 36);
     this._burstAfterimages(8, true);
+    this.ui.hideBoostPrompt?.();
     this.audio.playHyperStart();
     this.ui.showSurgeCutin?.('SOLAR SURGE', 'BREAK THROUGH', 'RAM THROUGH OBSTACLES');
     this.ui.showStatus('SOLAR SURGE: RAM THROUGH');

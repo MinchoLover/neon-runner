@@ -117,6 +117,7 @@ export class UIManager {
       <div class="center-panel" data-ui="panel">
         <p class="start-prompt">PRESS <kbd>SPACE</kbd> TO IGNITE</p>
       </div>
+      <div class="boost-prompt" data-ui="boostPrompt" aria-live="polite"></div>
       <div class="hit-flash" data-ui="hitFlash"></div>
     `;
 
@@ -157,6 +158,7 @@ export class UIManager {
     this.zoneLabel = root.querySelector('[data-ui="zoneLabel"]');
     this.nearMiss = root.querySelector('[data-ui="nearMiss"]');
     this.surgeBreak = root.querySelector('[data-ui="surgeBreak"]');
+    this.boostPrompt = root.querySelector('[data-ui="boostPrompt"]');
     this.missions = root.querySelector('[data-ui="missions"]');
     this.missionToast = root.querySelector('[data-ui="missionToast"]');
     this.mobileControls = root.querySelector('[data-ui="mobileControls"]');
@@ -164,10 +166,12 @@ export class UIManager {
     this.shieldFlashTimer = null;
     this.hitFlashTimer = null;
     this.solarCoreFlashTimer = null;
+    this.boostPromptTimer = null;
     this.displayCache = new Map();
     this.missionRenderKey = '';
     this.shieldRenderKey = '';
     this.isCompactMode = false;
+    this.currentState = 'ready';
     this.bestScore = this._readBestScore();
   }
 
@@ -314,6 +318,27 @@ export class UIManager {
     if (warning) this.zoneLabel.classList.add('warning');
   }
 
+  showBoostPrompt(label, tone = 'boost', duration = 540) {
+    if (!this.boostPrompt) return;
+
+    window.clearTimeout(this.boostPromptTimer);
+    this.boostPrompt.dataset.tone = tone;
+    this.boostPrompt.textContent = label;
+    this.boostPrompt.classList.remove('active');
+    void this.boostPrompt.offsetWidth;
+    this.boostPrompt.classList.add('active');
+
+    this.boostPromptTimer = window.setTimeout(() => {
+      this.boostPrompt?.classList.remove('active');
+    }, duration);
+  }
+
+  hideBoostPrompt() {
+    if (!this.boostPrompt) return;
+    window.clearTimeout(this.boostPromptTimer);
+    this.boostPrompt.classList.remove('active');
+  }
+
 
   showLaunchCue(phase = 'ENGINE SYNC', label = 'IGNITION') {
     if (!this.launchSequence) return;
@@ -370,20 +395,20 @@ export class UIManager {
     this._setOutput('best', this.best, this.bestScore.toLocaleString('en-US'));
     this._setText('mobileScore', this.mobileScore, Math.floor(stats.score).toLocaleString('en-US'));
     this._setText('mobileSpeed', this.mobileSpeed, Math.floor(stats.speed * 7.2).toLocaleString('en-US'));
-    this._setText(
-      'mobileBoost',
-      this.mobileBoost,
-      stats.missionVisual?.focus?.noBoost ? 'HOLD' : stats.boostReady ? 'READY' : `${Math.ceil(stats.boostCooldown * 10) / 10}s`,
-    );
     this._setText('mobileShield', this.mobileShield, `${stats.shield}/${stats.maxShield}`);
-    this._setOutput(
-      'boost',
-      this.boost,
-      stats.missionVisual?.focus?.noBoost ? 'HOLD' : stats.boostReady ? 'READY' : `${Math.ceil(stats.boostCooldown * 10) / 10}s`,
-    );
+    const boostLabel = stats.missionVisual?.focus?.noBoost
+      ? (stats.hyperReady ? 'SURGE' : 'HOLD')
+      : stats.hyperReady
+        ? 'SURGE'
+        : stats.boostReady
+          ? 'BURST'
+          : 'WAIT';
+    this._setText('mobileBoost', this.mobileBoost, boostLabel);
+    this._setOutput('boost', this.boost, boostLabel);
     this._renderHyper(stats);
     this._setDataset('hyper', stats.hyperActive);
     this._setDataset('hyperReady', stats.hyperReady);
+    this._updatePrimaryButton(stats);
     if (this.isCompactMode) {
       if (this.missions && this.missionRenderKey !== '__compact__') {
         this.missionRenderKey = '__compact__';
@@ -431,11 +456,10 @@ export class UIManager {
   }
 
   setState(state, stats) {
+    this.currentState = state;
     this.root.dataset.state = state;
-    if (this.mobilePrimary) {
-      this.mobilePrimary.textContent = state === 'playing' ? 'BOOST' : state === 'countdown' ? 'READY' : 'START';
-      this.mobilePrimary.disabled = state === 'countdown' || state === 'crashing';
-    }
+    if (state !== 'playing') this.hideBoostPrompt();
+    this._updatePrimaryButton(stats);
     if (state === 'ready') {
       this.panel.innerHTML = `
         <p class="start-prompt">PRESS <kbd>SPACE</kbd> TO IGNITE</p>
@@ -487,6 +511,33 @@ export class UIManager {
         <p>PRESS <kbd>SPACE</kbd> TO RELAUNCH</p>
       `;
     }
+  }
+
+  _updatePrimaryButton(stats = {}) {
+    if (!this.mobilePrimary) return;
+
+    let label = 'START';
+    let mode = 'start';
+
+    if (this.currentState === 'playing') {
+      if (stats.hyperReady) {
+        label = 'SURGE';
+        mode = 'surge';
+      } else if (stats.missionVisual?.focus?.noBoost) {
+        label = 'HOLD';
+        mode = 'wait';
+      } else if (stats.boostReady) {
+        label = 'BURST';
+        mode = 'burst';
+      } else {
+        label = 'WAIT';
+        mode = 'wait';
+      }
+    }
+
+    this._setText('mobilePrimary', this.mobilePrimary, label);
+    this._setDatasetValue('primaryMode', mode);
+    this.mobilePrimary.disabled = this.currentState === 'countdown' || this.currentState === 'crashing';
   }
 
   _renderMissions(missions) {
@@ -560,6 +611,13 @@ export class UIManager {
   _setDataset(key, active) {
     const cacheKey = `dataset:${key}`;
     const value = active ? 'true' : 'false';
+    if (this.displayCache.get(cacheKey) === value) return;
+    this.displayCache.set(cacheKey, value);
+    this.root.dataset[key] = value;
+  }
+
+  _setDatasetValue(key, value) {
+    const cacheKey = `dataset:${key}`;
     if (this.displayCache.get(cacheKey) === value) return;
     this.displayCache.set(cacheKey, value);
     this.root.dataset[key] = value;
