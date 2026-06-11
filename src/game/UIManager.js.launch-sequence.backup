@@ -89,11 +89,6 @@ export class UIManager {
         </div>
       </div>
       <div class="hyper-banner" data-ui="hyper">SOLAR SURGE</div>
-      <div class="launch-sequence" data-ui="launchSequence" aria-hidden="true">
-        <span data-ui="launchPhase">ENGINE SYNC</span>
-        <strong data-ui="launchLabel">IGNITION</strong>
-        <i aria-hidden="true"></i>
-      </div>
       <div class="zone-label" data-ui="zoneLabel">ZONE: SOLAR Alpha</div>
       <div class="near-miss" data-ui="nearMiss">NEAR MISS</div>
       <div class="surge-break" data-ui="surgeBreak">SOLAR BREAK</div>
@@ -139,10 +134,6 @@ export class UIManager {
     this.panel = root.querySelector('[data-ui="panel"]');
     this.hitFlash = root.querySelector('[data-ui="hitFlash"]');
     this.hyper = root.querySelector('[data-ui="hyper"]');
-    this.launchSequence = root.querySelector('[data-ui="launchSequence"]');
-    this.launchPhase = root.querySelector('[data-ui="launchPhase"]');
-    this.launchLabel = root.querySelector('[data-ui="launchLabel"]');
-    this.launchCueTimer = null;
     this.zoneLabel = root.querySelector('[data-ui="zoneLabel"]');
     this.nearMiss = root.querySelector('[data-ui="nearMiss"]');
     this.surgeBreak = root.querySelector('[data-ui="surgeBreak"]');
@@ -278,49 +269,10 @@ export class UIManager {
     if (warning) this.zoneLabel.classList.add('warning');
   }
 
-
-  showLaunchCue(phase = 'ENGINE SYNC', label = 'IGNITION') {
-    if (!this.launchSequence) return;
-
-    window.clearTimeout(this.launchCueTimer);
-
-    if (this.launchPhase) this.launchPhase.textContent = phase;
-    if (this.launchLabel) this.launchLabel.textContent = label;
-
-    this.launchSequence.classList.remove('active', 'final');
-    void this.launchSequence.offsetWidth;
-    this.launchSequence.classList.add('active');
-
-    if (label.includes('LAUNCH') || label === 'GO') {
-      this.launchSequence.classList.add('final');
-    }
-
-    this.launchCueTimer = window.setTimeout(() => {
-      this.launchSequence?.classList.remove('active', 'final');
-    }, label.includes('LAUNCH') || label === 'GO' ? 760 : 460);
-  }
-
-  hideLaunchCue() {
-    if (!this.launchSequence) return;
-    window.clearTimeout(this.launchCueTimer);
-    this.launchSequence.classList.remove('active', 'final');
-  }
-
-
   setCountdown(value) {
-    const subtitles = {
-      IGNITION: 'ENGINE SYNC',
-      '3': 'CORE ONLINE',
-      '2': 'THRUSTERS ARMED',
-      '1': 'VECTOR LOCKED',
-      GO: 'SOLAR LAUNCH',
-    };
-
-    const wide = value === 'IGNITION' || value === 'GO';
-
     this.panel.innerHTML = `
-      <h1 class="countdown-text ${wide ? 'launch-countdown' : ''}">${value}</h1>
-      <p>${subtitles[value] ?? 'GET READY'}</p>
+      <h1 class="countdown-text">${value}</h1>
+      <p>GET READY</p>
     `;
   }
 

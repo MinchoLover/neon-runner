@@ -520,7 +520,7 @@ export class Game {
     this.invincibleTime = 0;
     this.hitFlashTime = 0;
     this.gameoverTimer = 0;
-    this.countdownTimer = 2.85;
+    this.countdownTimer = 2.05;
     this.countdownLabel = '';
     this.startPulseTimer = 0;
     this.crashSpeed = 0;
@@ -575,7 +575,7 @@ export class Game {
     this.activePalette = TUNNEL_PALETTES[0];
     this._syncPalette(0.016);
     this.ui.setState(this.state, this.stats);
-    this._setCountdownLabel('IGNITION');
+    this._setCountdownLabel('3');
     this.ui.update(this.stats);
   }
 
@@ -610,101 +610,33 @@ export class Game {
     this.player.group.rotation.y += delta * 0.15;
   }
 
-
   _updateCountdown(delta, now) {
     this.countdownTimer = Math.max(this.countdownTimer - delta, 0);
-
-    const launchProgress = THREE.MathUtils.clamp(1 - this.countdownTimer / 2.85, 0, 1);
-    const launchSpeed = GAME.startSpeed * THREE.MathUtils.lerp(0.42, 1.32, launchProgress);
-
     this._syncPalette(delta);
-    this.tunnel.update(delta, launchSpeed, 0, null, launchProgress * 0.5, now);
-    this.player.update(delta, launchProgress * 0.38, 0, 0, false, 0, 0, now);
+    this.tunnel.update(delta, GAME.startSpeed * 0.78, 0, null, 0, now);
+    this.player.update(delta, 0, 0, 0, false, 0, 0, now);
 
-    if (this.player?.group) {
-      this.player.group.rotation.z += Math.sin(launchProgress * Math.PI * 5) * delta * 0.035;
-      this.player.group.position.y += Math.sin(launchProgress * Math.PI) * 0.002;
-    }
-
-    if (this.countdownTimer > 2.2) this._setCountdownLabel('IGNITION');
-    else if (this.countdownTimer > 1.62) this._setCountdownLabel('3');
-    else if (this.countdownTimer > 1.04) this._setCountdownLabel('2');
-    else if (this.countdownTimer > 0.46) this._setCountdownLabel('1');
+    if (this.countdownTimer > 1.5) this._setCountdownLabel('3');
+    else if (this.countdownTimer > 1) this._setCountdownLabel('2');
+    else if (this.countdownTimer > 0.5) this._setCountdownLabel('1');
     else if (this.countdownTimer > 0) this._setCountdownLabel('GO');
 
     if (this.countdownTimer <= 0) {
-      this.ui.hideLaunchCue?.();
       this.state = 'playing';
-      this.startPulseTimer = 0.46;
-      this.boostTimer = 0.5;
-      this.cameraKickImpulse = Math.max(this.cameraKickImpulse || 0, 0.68);
-      this.cameraFovImpulse = Math.max(this.cameraFovImpulse || 0, 3.8);
-      this.shake = 0.24;
+      this.startPulseTimer = 0.4;
+      this.boostTimer = 0.45;
+      this.shake = 0.18;
       this.audio.play('boost');
       this.audio.play('go');
       this.ui.setState(this.state, this.stats);
     }
   }
 
-
   _setCountdownLabel(label) {
     if (this.countdownLabel === label) return;
-
     this.countdownLabel = label;
     this.ui.setCountdown(label);
-
-    const cue = {
-      IGNITION: ['ENGINE SYNC', 'IGNITION'],
-      '3': ['CORE ONLINE', 'THREE'],
-      '2': ['THRUSTERS ARMED', 'TWO'],
-      '1': ['VECTOR LOCKED', 'ONE'],
-      GO: ['SOLAR LAUNCH', 'BREAK THROUGH'],
-    }[label];
-
-    if (cue) this.ui.showLaunchCue?.(cue[0], cue[1]);
-
-    if (label === 'IGNITION') {
-      this.startPulseTimer = Math.max(this.startPulseTimer || 0, 0.18);
-      this.cameraKickImpulse = Math.max(this.cameraKickImpulse || 0, 0.18);
-      this.cameraFovImpulse = Math.max(this.cameraFovImpulse || 0, 0.9);
-      this.shake = Math.max(this.shake || 0, 0.06);
-      this.particles?.energyBurst?.(this.player.group.position, 10);
-      this.audio.play('start');
-      return;
-    }
-
-    if (label === '3' || label === '2' || label === '1') {
-      const step = Number(label);
-      const power = 4 - step;
-
-      this.startPulseTimer = Math.max(this.startPulseTimer || 0, 0.2);
-      this.cameraKickImpulse = Math.max(this.cameraKickImpulse || 0, 0.14 + power * 0.06);
-      this.cameraFovImpulse = Math.max(this.cameraFovImpulse || 0, 0.6 + power * 0.35);
-      this.cameraRollImpulse += (Math.random() > 0.5 ? 1 : -1) * (0.018 + power * 0.01);
-      this.shake = Math.max(this.shake || 0, 0.045 + power * 0.025);
-
-      this.particles?.sparkle?.(this.player.group.position, 8 + power * 4);
-      this._spawnAfterimage?.(0.55 + power * 0.12, false, 0.04 * power);
-      this.audio.play('countdown');
-      return;
-    }
-
-    if (label === 'GO') {
-      this.startPulseTimer = Math.max(this.startPulseTimer || 0, 0.42);
-      this.cameraKickImpulse = Math.max(this.cameraKickImpulse || 0, 0.82);
-      this.cameraFovImpulse = Math.max(this.cameraFovImpulse || 0, 4.6);
-      this.cameraRollImpulse += (Math.random() > 0.5 ? 1 : -1) * 0.08;
-      this.shake = Math.max(this.shake || 0, 0.26);
-
-      this.particles?.energyBurst?.(this.player.group.position, 34);
-      this.particles?.boostBurst?.(this.player.group.position, 34);
-      this.particles?.riftBurst?.(this.player.group.position, 24);
-      this._burstAfterimages?.(7, false);
-      this.audio.play('go');
-      return;
-    }
-
-    this.audio.play('countdown');
+    this.audio.play(label === 'GO' ? 'go' : 'countdown');
   }
 
   _updatePlaying(delta, now) {
